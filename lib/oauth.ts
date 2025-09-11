@@ -28,11 +28,40 @@ export interface AccessTokenResponse {
   screen_name: string;
 }
 
+export interface PostAnalytics {
+  id: string;
+  timestamped_metrics: Array<{
+    metrics: {
+      app_install_attempts?: number;
+      app_opens?: number;
+      detail_expands?: number;
+      email_tweet?: number;
+      engagements?: number;
+      follows?: number;
+      hashtag_clicks?: number;
+      impressions?: number;
+      likes?: number;
+      link_clicks?: number;
+      media_engagements?: number;
+      media_views?: number;
+      permalink_clicks?: number;
+      profile_visits?: number;
+      quote_tweets?: number;
+      replies?: number;
+      retweets?: number;
+      url_clicks?: number;
+      user_profile_clicks?: number;
+    };
+    timestamp: string;
+  }>;
+}
+
 export class TwitterOAuth {
   private static readonly REQUEST_TOKEN_URL = 'https://api.twitter.com/oauth/request_token';
   private static readonly AUTHORIZE_URL = 'https://api.twitter.com/oauth/authorize';
   private static readonly ACCESS_TOKEN_URL = 'https://api.twitter.com/oauth/access_token';
-  private static readonly API_BASE_URL = 'https://api.twitter.com/1.1';
+  private static readonly API_V1_BASE_URL = 'https://api.twitter.com/1.1';
+  private static readonly API_V2_BASE_URL = 'https://api.x.com/2';
 
   static async getRequestToken(callbackUrl: string): Promise<RequestTokenResponse> {
     const requestData = {
@@ -156,9 +185,10 @@ export class TwitterOAuth {
     return response.json();
   }
 
+  // V1.1 API methods (for backward compatibility)
   static async getUserProfile(accessToken: string, accessTokenSecret: string) {
     return this.makeApiRequest(
-      `${this.API_BASE_URL}/account/verify_credentials.json`,
+      `${this.API_V1_BASE_URL}/account/verify_credentials.json`,
       'GET',
       accessToken,
       accessTokenSecret
@@ -167,11 +197,50 @@ export class TwitterOAuth {
 
   static async getTweets(accessToken: string, accessTokenSecret: string, count = 10) {
     return this.makeApiRequest(
-      `${this.API_BASE_URL}/statuses/home_timeline.json`,
+      `${this.API_V1_BASE_URL}/statuses/home_timeline.json`,
       'GET',
       accessToken,
       accessTokenSecret,
       { count: count.toString() }
+    );
+  }
+
+  // V2 API methods
+  static async getUserTweets(accessToken: string, accessTokenSecret: string, userId: string, maxResults = 10) {
+    return this.makeApiRequest(
+      `${this.API_V2_BASE_URL}/users/${userId}/tweets`,
+      'GET',
+      accessToken,
+      accessTokenSecret,
+      { 
+        'tweet.fields': 'created_at,public_metrics,context_annotations',
+        'max_results': maxResults.toString()
+      }
+    );
+  }
+
+  static async getPostAnalytics(
+    accessToken: string, 
+    accessTokenSecret: string, 
+    postIds: string[], 
+    startTime: string, 
+    endTime: string,
+    granularity: 'hourly' | 'daily' | 'weekly' | 'total' = 'total'
+  ): Promise<{ data: PostAnalytics[], errors?: any[] }> {
+    const params = {
+      ids: postIds.join(','),
+      start_time: startTime,
+      end_time: endTime,
+      granularity: granularity,
+      'analytics.fields': 'impressions,likes,retweets,replies,engagements,profile_visits,url_clicks,media_views'
+    };
+
+    return this.makeApiRequest(
+      `${this.API_V2_BASE_URL}/tweets/analytics`,
+      'GET',
+      accessToken,
+      accessTokenSecret,
+      params
     );
   }
 }

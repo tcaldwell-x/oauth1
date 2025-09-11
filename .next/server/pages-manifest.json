@@ -1,12 +1,14 @@
 {
+  "/api/auth/twitter": "pages/api/auth/twitter.js",
   "/_error": "pages/_error.js",
   "/api/auth/twitter/callback": "pages/api/auth/twitter/callback.js",
+  "/api/twitter/analytics": "pages/api/twitter/analytics.js",
   "/api/twitter/tweets": "pages/api/twitter/tweets.js",
-  "/dashboard": "pages/dashboard.html",
-  "/": "pages/index.html",
   "/api/twitter/profile": "pages/api/twitter/profile.js",
+  "/dashboard": "pages/dashboard.html",
+  "/api/twitter/user-tweets": "pages/api/twitter/user-tweets.js",
   "/_app": "pages/_app.js",
-  "/api/auth/twitter": "pages/api/auth/twitter.js",
+  "/": "pages/index.html",
   "/_document": "pages/_document.js",
   "/404": "pages/404.html"
 }

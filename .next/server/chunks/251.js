@@ -29,7 +29,8 @@ class TwitterOAuth {
     static REQUEST_TOKEN_URL = "https://api.twitter.com/oauth/request_token";
     static AUTHORIZE_URL = "https://api.twitter.com/oauth/authorize";
     static ACCESS_TOKEN_URL = "https://api.twitter.com/oauth/access_token";
-    static API_BASE_URL = "https://api.twitter.com/1.1";
+    static API_V1_BASE_URL = "https://api.twitter.com/1.1";
+    static API_V2_BASE_URL = "https://api.x.com/2";
     static async getRequestToken(callbackUrl) {
         const requestData = {
             url: this.REQUEST_TOKEN_URL,
@@ -130,13 +131,31 @@ class TwitterOAuth {
         }
         return response.json();
     }
+    // V1.1 API methods (for backward compatibility)
     static async getUserProfile(accessToken, accessTokenSecret) {
-        return this.makeApiRequest(`${this.API_BASE_URL}/account/verify_credentials.json`, "GET", accessToken, accessTokenSecret);
+        return this.makeApiRequest(`${this.API_V1_BASE_URL}/account/verify_credentials.json`, "GET", accessToken, accessTokenSecret);
     }
     static async getTweets(accessToken, accessTokenSecret, count = 10) {
-        return this.makeApiRequest(`${this.API_BASE_URL}/statuses/home_timeline.json`, "GET", accessToken, accessTokenSecret, {
+        return this.makeApiRequest(`${this.API_V1_BASE_URL}/statuses/home_timeline.json`, "GET", accessToken, accessTokenSecret, {
             count: count.toString()
         });
+    }
+    // V2 API methods
+    static async getUserTweets(accessToken, accessTokenSecret, userId, maxResults = 10) {
+        return this.makeApiRequest(`${this.API_V2_BASE_URL}/users/${userId}/tweets`, "GET", accessToken, accessTokenSecret, {
+            "tweet.fields": "created_at,public_metrics,context_annotations",
+            "max_results": maxResults.toString()
+        });
+    }
+    static async getPostAnalytics(accessToken, accessTokenSecret, postIds, startTime, endTime, granularity = "total") {
+        const params = {
+            ids: postIds.join(","),
+            start_time: startTime,
+            end_time: endTime,
+            granularity: granularity,
+            "analytics.fields": "impressions,likes,retweets,replies,engagements,profile_visits,url_clicks,media_views"
+        };
+        return this.makeApiRequest(`${this.API_V2_BASE_URL}/tweets/analytics`, "GET", accessToken, accessTokenSecret, params);
     }
 }
 /* unused harmony default export */ var __WEBPACK_DEFAULT_EXPORT__ = ((/* unused pure expression or super */ null && (oauth)));

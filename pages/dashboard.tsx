@@ -13,22 +13,40 @@ interface TwitterUser {
 }
 
 interface Tweet {
-  id_str: string
+  id: string
   text: string
   created_at: string
-  user: {
-    screen_name: string
-    name: string
-    profile_image_url: string
+  public_metrics?: {
+    retweet_count: number
+    like_count: number
+    reply_count: number
+    quote_count: number
+    impression_count?: number
   }
-  retweet_count: number
-  favorite_count: number
+}
+
+interface PostAnalytics {
+  id: string
+  timestamped_metrics: Array<{
+    metrics: {
+      impressions?: number
+      likes?: number
+      retweets?: number
+      replies?: number
+      engagements?: number
+      profile_visits?: number
+      url_clicks?: number
+      media_views?: number
+    }
+    timestamp: string
+  }>
 }
 
 export default function Dashboard() {
   const router = useRouter()
   const [user, setUser] = useState<TwitterUser | null>(null)
   const [tweets, setTweets] = useState<Tweet[]>([])
+  const [analytics, setAnalytics] = useState<PostAnalytics[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -44,41 +62,83 @@ export default function Dashboard() {
       }
       const userData = await response.json()
       setUser(userData)
+      return userData
     } catch (err) {
       setError('Failed to load user profile')
       console.error(err)
+      return null
     }
   }
 
-  const fetchTweets = async () => {
+  const fetchUserTweets = async (userId: string): Promise<Tweet[]> => {
     try {
-      const response = await fetch('/api/twitter/tweets?count=10')
+      const response = await fetch(`/api/twitter/user-tweets?userId=${userId}&maxResults=20`)
       if (!response.ok) {
         throw new Error('Failed to fetch tweets')
       }
       const tweetsData = await response.json()
-      setTweets(tweetsData)
+      const tweets = tweetsData.data || []
+      setTweets(tweets)
+      return tweets
     } catch (err) {
       setError('Failed to load tweets')
       console.error(err)
+      return []
+    }
+  }
+
+  const fetchPostAnalytics = async (postIds: string[]) => {
+    if (postIds.length === 0) return
+
+    try {
+      // Get analytics for the last 30 days
+      const endTime = new Date().toISOString()
+      const startTime = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      
+      const response = await fetch(
+        `/api/twitter/analytics?postIds=${postIds.join(',')}&startTime=${startTime}&endTime=${endTime}&granularity=total`
+      )
+      
+      if (!response.ok) {
+        console.warn('Analytics not available for these posts')
+        return
+      }
+      
+      const analyticsData = await response.json()
+      setAnalytics(analyticsData.data || [])
+    } catch (err) {
+      console.warn('Failed to load analytics:', err)
+      // Analytics might not be available for all accounts
     }
   }
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true)
-      await Promise.all([fetchUserProfile(), fetchTweets()])
+      const userData = await fetchUserProfile()
+      
+      if (userData) {
+        const userTweets = await fetchUserTweets(userData.id_str)
+        if (userTweets.length > 0) {
+          const postIds = userTweets.map((tweet: Tweet) => tweet.id)
+          await fetchPostAnalytics(postIds)
+        }
+      }
+      
       setLoading(false)
     }
     loadData()
   }, [])
 
   const handleLogout = () => {
-    // Clear cookies by making a request to clear them
     document.cookie = 'access_token=; Max-Age=0; path=/'
     document.cookie = 'access_token_secret=; Max-Age=0; path=/'
     document.cookie = 'user_info=; Max-Age=0; path=/'
     router.push('/')
+  }
+
+  const getAnalyticsForPost = (postId: string) => {
+    return analytics.find(a => a.id === postId)
   }
 
   if (loading) {
@@ -128,7 +188,7 @@ export default function Dashboard() {
               >
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
               </svg>
-              <h1 className="text-2xl font-bold text-gray-900">X Dashboard</h1>
+              <h1 className="text-2xl font-bold text-gray-900">X Dashboard v2</h1>
             </div>
             <button onClick={handleLogout} className="btn btn-secondary">
               Logout
@@ -161,9 +221,9 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Posts Section */}
+        {/* Posts with Analytics */}
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Home Timeline</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Posts with Analytics</h3>
           
           {error && tweets.length === 0 ? (
             <div className="error">
@@ -173,56 +233,93 @@ export default function Dashboard() {
             <p className="text-gray-600">No posts found.</p>
           ) : (
             <div className="space-y-4">
-              {tweets.map((tweet) => (
-                <div key={tweet.id_str} className="tweet-card">
-                  <div className="flex items-start space-x-3">
-                    <img
-                      src={tweet.user.profile_image_url}
-                      alt={tweet.user.name}
-                      className="profile-img-small"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-semibold text-gray-900">{tweet.user.name}</span>
-                        <span className="text-gray-600">@{tweet.user.screen_name}</span>
-                        <span className="text-gray-400">·</span>
-                        <span className="text-gray-400 text-sm">
-                          {new Date(tweet.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="text-gray-800 mt-1">{tweet.text}</p>
-                      <div className="flex space-x-6 mt-3 text-sm text-gray-600">
-                        <span>🔄 {tweet.retweet_count}</span>
-                        <span>❤️ {tweet.favorite_count}</span>
+              {tweets.map((tweet) => {
+                const postAnalytics = getAnalyticsForPost(tweet.id)
+                const latestMetrics = postAnalytics?.timestamped_metrics?.[0]?.metrics
+                
+                return (
+                  <div key={tweet.id} className="tweet-card">
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <span className="font-semibold text-gray-900">{user?.name}</span>
+                          <span className="text-gray-600">@{user?.screen_name}</span>
+                          <span className="text-gray-400">·</span>
+                          <span className="text-gray-400 text-sm">
+                            {new Date(tweet.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-gray-800 mb-3">{tweet.text}</p>
+                        
+                        {/* Basic Metrics */}
+                        <div className="flex space-x-6 text-sm text-gray-600 mb-3">
+                          <span>🔄 {tweet.public_metrics?.retweet_count || 0}</span>
+                          <span>❤️ {tweet.public_metrics?.like_count || 0}</span>
+                          <span>💬 {tweet.public_metrics?.reply_count || 0}</span>
+                          <span>📊 {tweet.public_metrics?.quote_count || 0}</span>
+                        </div>
+
+                        {/* Advanced Analytics */}
+                        {latestMetrics && (
+                          <div className="border-t border-gray-600 pt-3">
+                            <h4 className="text-sm font-semibold text-gray-400 mb-2">Analytics (30 days)</h4>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                              <div className="text-center">
+                                <div className="text-lg font-bold text-white">{latestMetrics.impressions?.toLocaleString() || 'N/A'}</div>
+                                <div className="text-gray-400">Impressions</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-bold text-white">{latestMetrics.engagements?.toLocaleString() || 'N/A'}</div>
+                                <div className="text-gray-400">Engagements</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-bold text-white">{latestMetrics.profile_visits?.toLocaleString() || 'N/A'}</div>
+                                <div className="text-gray-400">Profile Visits</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-bold text-white">{latestMetrics.url_clicks?.toLocaleString() || 'N/A'}</div>
+                                <div className="text-gray-400">Link Clicks</div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
 
-        {/* API Demo Section */}
+        {/* API Info */}
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">X API Demo</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">X API v2 Integration</h3>
           <p className="text-gray-600 mb-4">
-            This demonstrates OAuth 1.0 authenticated requests to the X API:
+            This dashboard now uses X API v2 endpoints for enhanced analytics:
           </p>
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
               <span className="status-indicator status-green"></span>
-              <span className="text-sm">GET /1.1/account/verify_credentials.json</span>
+              <span className="text-sm">GET /2/users/{user?.id_str}/tweets - User's posts</span>
             </div>
             <div className="flex items-center space-x-2">
               <span className="status-indicator status-green"></span>
-              <span className="text-sm">GET /1.1/statuses/home_timeline.json</span>
+              <span className="text-sm">GET /2/tweets/analytics - Post analytics</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="status-indicator status-green"></span>
+              <span className="text-sm">GET /1.1/account/verify_credentials.json - User profile</span>
             </div>
           </div>
           <button
             onClick={() => {
-              fetchUserProfile()
-              fetchTweets()
+              if (user) {
+                fetchUserTweets(user.id_str)
+                if (tweets.length > 0) {
+                  fetchPostAnalytics(tweets.map((t: Tweet) => t.id))
+                }
+              }
             }}
             className="btn btn-primary mt-4"
           >
