@@ -49,6 +49,20 @@ export default function Dashboard() {
   const [analytics, setAnalytics] = useState<PostAnalytics[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showTokens, setShowTokens] = useState(false)
+  const [tokens, setTokens] = useState<{accessToken: string, accessTokenSecret: string} | null>(null)
+
+  const fetchTokens = async () => {
+    try {
+      const response = await fetch('/api/twitter/tokens')
+      if (response.ok) {
+        const tokenData = await response.json()
+        setTokens(tokenData)
+      }
+    } catch (err) {
+      console.warn('Failed to fetch tokens:', err)
+    }
+  }
 
   const fetchUserProfile = async () => {
     try {
@@ -115,6 +129,7 @@ export default function Dashboard() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true)
+      await fetchTokens()
       const userData = await fetchUserProfile()
       
       if (userData) {
@@ -139,6 +154,11 @@ export default function Dashboard() {
 
   const getAnalyticsForPost = (postId: string) => {
     return analytics.find(a => a.id === postId)
+  }
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+    // You could add a toast notification here
   }
 
   if (loading) {
@@ -220,6 +240,67 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+        {/* OAuth Tokens Debug Section */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">OAuth Tokens (Debug)</h3>
+            <button 
+              onClick={() => setShowTokens(!showTokens)}
+              className="btn btn-secondary text-sm"
+            >
+              {showTokens ? 'Hide' : 'Show'} Tokens
+            </button>
+          </div>
+          
+          {showTokens && tokens && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">
+                  Access Token:
+                </label>
+                <div className="flex items-center space-x-2">
+                  <code className="flex-1 p-3 bg-gray-800 text-gray-300 rounded text-sm break-all">
+                    {tokens.accessToken}
+                  </code>
+                  <button
+                    onClick={() => copyToClipboard(tokens.accessToken)}
+                    className="btn btn-secondary text-xs px-3 py-2"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">
+                  Access Token Secret:
+                </label>
+                <div className="flex items-center space-x-2">
+                  <code className="flex-1 p-3 bg-gray-800 text-gray-300 rounded text-sm break-all">
+                    {tokens.accessTokenSecret}
+                  </code>
+                  <button
+                    onClick={() => copyToClipboard(tokens.accessTokenSecret)}
+                    className="btn btn-secondary text-xs px-3 py-2"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+              
+              <div className="text-xs text-gray-500 bg-gray-800 p-3 rounded">
+                <strong>Note:</strong> These tokens are used for API authentication. Keep them secure and never share them publicly.
+              </div>
+            </div>
+          )}
+          
+          {showTokens && !tokens && (
+            <div className="text-gray-500 text-sm">
+              No tokens available. Please log in again.
+            </div>
+          )}
+        </div>
 
         {/* Posts with Analytics */}
         <div className="card">
