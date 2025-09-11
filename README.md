@@ -1,34 +1,35 @@
-# Twitter OAuth 1.0 Next.js App
+# X OAuth 1.0 Next.js App
 
-A Next.js application demonstrating OAuth 1.0 authentication with Twitter (X) and making authenticated API requests
+A Next.js application demonstrating OAuth 1.0 authentication with X (formerly Twitter) and making authenticated API requests.
 
 ## Features
 
-- OAuth 1.0 authentication flow with Twitter
+- OAuth 1.0 authentication flow with X
 - User profile display
-- Home timeline tweets display
+- Home timeline posts display
 - Secure token storage using HTTP-only cookies
 - Modern React with TypeScript
-- Tailwind CSS for styling
+- Dark theme with X branding
 
 ## Setup Instructions
 
-### 1. Twitter Developer Account Setup
+### 1. X Developer Account Setup
 
-1. Go to [Twitter Developer Portal](https://developer.twitter.com/en/portal/dashboard)
+1. Go to [X Developer Portal](https://developer.twitter.com/en/portal/dashboard)
 2. Create a new app or use an existing one
 3. Navigate to your app settings
 4. Copy your **Consumer Key** and **Consumer Secret**
-5. Set the callback URL to: `http://localhost:3000/api/auth/twitter/callback`
+5. Set the callback URL to: `https://oauth1.vercel.app/api/auth/twitter/callback`
 
 ### 2. Environment Configuration
 
-1. Copy the `.env.local` file and update it with your Twitter credentials:
+1. In your Vercel dashboard, go to **Settings** → **Environment Variables**
+2. Add these environment variables:
 
 ```bash
 TWITTER_CONSUMER_KEY=your_consumer_key_here
 TWITTER_CONSUMER_SECRET=your_consumer_secret_here
-NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_URL=https://oauth1.vercel.app
 ```
 
 ### 3. Install Dependencies
@@ -49,25 +50,32 @@ The application will be available at [http://localhost:3000](http://localhost:30
 
 ### OAuth 1.0 Flow
 
-1. **Request Token**: User clicks "Login with Twitter" → App requests a request token from Twitter
-2. **Authorization**: User is redirected to Twitter to authorize the app
-3. **Callback**: Twitter redirects back with an OAuth verifier
+1. **Request Token**: User clicks "Login with X" → App requests a request token from X
+2. **Authorization**: User is redirected to X to authorize the app
+3. **Callback**: X redirects back with an OAuth verifier
 4. **Access Token**: App exchanges the verifier for an access token
 5. **API Requests**: App can now make authenticated requests on behalf of the user
 
 ### File Structure
 
 ```
-src/
-├── app/
-│   ├── api/
-│   │   ├── auth/twitter/          # OAuth flow endpoints
-│   │   └── twitter/               # API request endpoints
-│   ├── dashboard/                 # Protected dashboard page
-│   └── page.tsx                   # Login page
+oauth1/
 ├── lib/
 │   └── oauth.ts                   # OAuth 1.0 implementation
-└── components/                    # React components (if needed)
+├── pages/
+│   ├── _app.tsx                   # Next.js app wrapper
+│   ├── index.tsx                  # Login page
+│   ├── dashboard.tsx              # Protected dashboard
+│   └── api/
+│       ├── auth/twitter/
+│       │   ├── index.ts           # OAuth initiation
+│       │   └── callback.ts        # OAuth callback handler
+│       └── twitter/
+│           ├── profile.ts         # User profile API
+│           └── tweets.ts          # Posts API
+├── styles/
+│   └── globals.css                # Dark theme CSS styles
+└── README.md                      # Setup instructions
 ```
 
 ### API Endpoints
@@ -87,7 +95,7 @@ src/
 ## Production Deployment
 
 1. Update `NEXTAUTH_URL` to your production domain
-2. Update Twitter app callback URL to your production URL
+2. Update X app callback URL to your production URL
 3. Use secure cookie settings
 4. Consider using a database for token storage instead of cookies
 5. Implement proper error handling and logging
@@ -97,15 +105,14 @@ src/
 - **"Failed to get request token"**: Check your Consumer Key/Secret
 - **"OAuth session expired"**: The temporary token expired, try again
 - **"Not authenticated"**: Your access tokens may have expired
-- **API errors**: Check Twitter API status and rate limits
+- **API errors**: Check X API status and rate limits
 
 ## Rate Limits
 
-Twitter API has rate limits. This app makes minimal requests but be aware of:
+X API has rate limits. This app makes minimal requests but be aware of:
 - 15 requests per 15 minutes for user profile
 - 15 requests per 15 minutes for home timeline
 
 ## License
 
 MIT License
-# Updated for Vercel deployment

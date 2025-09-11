@@ -11,7 +11,7 @@ export default function LoginPage() {
     }
   }, [router.query.error])
 
-  const handleTwitterLogin = () => {
+  const handleXLogin = () => {
     window.location.href = '/api/auth/twitter'
   }
 
@@ -20,11 +20,11 @@ export default function LoginPage() {
       <div className="max-w-md mx-auto">
         <div className="card text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-6">
-            Twitter OAuth 1.0 Demo
+            X OAuth 1.0 Demo
           </h1>
           
           <p className="text-gray-600 mb-8">
-            This app demonstrates OAuth 1.0 authentication with Twitter (X) and 
+            This app demonstrates OAuth 1.0 authentication with X (formerly Twitter) and 
             shows how to make authenticated API requests.
           </p>
 
@@ -41,29 +41,29 @@ export default function LoginPage() {
           )}
 
           <button
-            onClick={handleTwitterLogin}
+            onClick={handleXLogin}
             className="btn btn-primary w-full flex items-center justify-center"
           >
             <svg
-              className="mr-2"
+              className="mr-2 x-logo"
               width="20"
               height="20"
               viewBox="0 0 24 24"
               fill="currentColor"
             >
-              <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
             </svg>
-            Login with Twitter
+            Login with X
           </button>
 
           <div className="setup-box">
             <h3 className="font-semibold text-blue-900 mb-2">Setup Instructions:</h3>
             <ol className="text-sm text-blue-800 text-left space-y-1">
-              <li>1. Create a Twitter Developer account</li>
+              <li>1. Create an X Developer account</li>
               <li>2. Create a new app at developer.twitter.com</li>
               <li>3. Copy your Consumer Key and Consumer Secret</li>
-              <li>4. Update the .env.local file with your credentials</li>
-              <li>5. Set callback URL to: http://localhost:3000/api/auth/twitter/callback</li>
+              <li>4. Update the environment variables in Vercel</li>
+              <li>5. Set callback URL to: https://oauth1.vercel.app/api/auth/twitter/callback</li>
             </ol>
           </div>
         </div>

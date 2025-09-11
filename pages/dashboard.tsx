@@ -87,9 +87,9 @@ export default function Dashboard() {
         <div className="container mx-auto">
           <div className="card">
             <div className="animate-pulse">
-              <div style={{height: '1rem', backgroundColor: '#e5e7eb', borderRadius: '4px', width: '25%', marginBottom: '1rem'}}></div>
-              <div style={{height: '1rem', backgroundColor: '#e5e7eb', borderRadius: '4px', width: '75%', marginBottom: '0.5rem'}}></div>
-              <div style={{height: '1rem', backgroundColor: '#e5e7eb', borderRadius: '4px', width: '50%'}}></div>
+              <div style={{height: '1rem', backgroundColor: '#333333', borderRadius: '4px', width: '25%', marginBottom: '1rem'}}></div>
+              <div style={{height: '1rem', backgroundColor: '#333333', borderRadius: '4px', width: '75%', marginBottom: '0.5rem'}}></div>
+              <div style={{height: '1rem', backgroundColor: '#333333', borderRadius: '4px', width: '50%'}}></div>
             </div>
           </div>
         </div>
@@ -118,7 +118,18 @@ export default function Dashboard() {
         {/* Header */}
         <div className="card">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">Twitter Dashboard</h1>
+            <div className="flex items-center space-x-3">
+              <svg
+                className="x-logo"
+                width="32"
+                height="32"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+              <h1 className="text-2xl font-bold text-gray-900">X Dashboard</h1>
+            </div>
             <button onClick={handleLogout} className="btn btn-secondary">
               Logout
             </button>
@@ -143,14 +154,14 @@ export default function Dashboard() {
                 <div className="flex space-x-6 mt-3 text-sm text-gray-600">
                   <span><strong>{user.followers_count.toLocaleString()}</strong> Followers</span>
                   <span><strong>{user.friends_count.toLocaleString()}</strong> Following</span>
-                  <span><strong>{user.statuses_count.toLocaleString()}</strong> Tweets</span>
+                  <span><strong>{user.statuses_count.toLocaleString()}</strong> Posts</span>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Tweets Section */}
+        {/* Posts Section */}
         <div className="card">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Home Timeline</h3>
           
@@ -159,7 +170,7 @@ export default function Dashboard() {
               <p>{error}</p>
             </div>
           ) : tweets.length === 0 ? (
-            <p className="text-gray-600">No tweets found.</p>
+            <p className="text-gray-600">No posts found.</p>
           ) : (
             <div className="space-y-4">
               {tweets.map((tweet) => (
@@ -194,9 +205,9 @@ export default function Dashboard() {
 
         {/* API Demo Section */}
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">API Demo</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">X API Demo</h3>
           <p className="text-gray-600 mb-4">
-            This demonstrates OAuth 1.0 authenticated requests to the Twitter API:
+            This demonstrates OAuth 1.0 authenticated requests to the X API:
           </p>
           <div className="space-y-2">
             <div className="flex items-center space-x-2">

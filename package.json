@@ -1,7 +1,8 @@
 {
-  "name": "oauth1-twitter-app",
+  "name": "x-oauth1-app",
   "version": "1.0.0",
   "private": true,
+  "description": "A Next.js app demonstrating X OAuth 1.0 authentication",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
