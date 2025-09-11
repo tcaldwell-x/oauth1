@@ -1,6 +1,6 @@
 # Twitter OAuth 1.0 Next.js App
 
-A Next.js application demonstrating OAuth 1.0 authentication with Twitter (X) and making authenticated API requests.
+A Next.js application demonstrating OAuth 1.0 authentication with Twitter (X) and making authenticated API requests
 
 ## Features
 
@@ -108,3 +108,4 @@ Twitter API has rate limits. This app makes minimal requests but be aware of:
 ## License
 
 MIT License
+# Updated for Vercel deployment
