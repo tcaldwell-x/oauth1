@@ -268,7 +268,7 @@ export default function Dashboard() {
                           {new Date(parseInt(message.created_timestamp)).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="text-gray-800 mb-3">{message.message_data.text}</p>
+                      <p className="text-gray-800 mb-3">{JSON.stringify(message.message_data)}</p>
                     </div>
                     <button
                       onClick={() => deleteWelcomeMessage(message.id)}
