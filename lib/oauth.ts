@@ -289,30 +289,32 @@ export class TwitterOAuth {
       secret: accessTokenSecret,
     };
 
-    // Use form-encoded approach with proper OAuth 1.0a signing
-    const formData = {
-      name,
-      message_data: JSON.stringify({ text })
+    // Match the working curl request format exactly
+    const requestBody = {
+      welcome_message: {
+        name,
+        message_data: {
+          text
+        }
+      }
     };
 
     const requestData = {
       url: `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/new.json`,
       method: 'POST',
-      data: formData,
+      data: requestBody,
     };
 
     const oauthHeaders = oauth.toHeader(oauth.authorize(requestData, token));
     const headers: Record<string, string> = { 
       ...oauthHeaders,
-      'Content-Type': 'application/x-www-form-urlencoded'
+      'Content-Type': 'application/json'
     };
-    
-    const body = new URLSearchParams(formData).toString();
 
     const response = await fetch(requestData.url, {
       method: 'POST',
       headers,
-      body,
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {

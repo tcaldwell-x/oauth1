@@ -302,7 +302,7 @@ export default function Dashboard() {
                 <input
                   type="text"
                   value={createFormData.name}
-                  onChange={(e) => setCreateFormData(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e => setCreateFormData(prev => ({ ...prev, name: e.target.value })))}
                   placeholder="Enter a name for this welcome message"
                   className="w-full p-3 bg-gray-800 text-gray-300 rounded border border-gray-600 focus:border-gray-500 focus:outline-none"
                   required
@@ -315,7 +315,7 @@ export default function Dashboard() {
                 </label>
                 <textarea
                   value={createFormData.text}
-                  onChange={(e) => setCreateFormData(prev => ({ ...prev, text: e.target.value }))}
+                  onChange={e => setCreateFormData(prev => ({ ...prev, text: e.target.value }))}
                   placeholder="Enter the welcome message text"
                   rows={4}
                   className="w-full p-3 bg-gray-800 text-gray-300 rounded border border-gray-600 focus:border-gray-500 focus:outline-none resize-vertical"
