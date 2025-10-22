@@ -282,6 +282,19 @@ export class TwitterOAuth {
       { id }
     );
   }
+
+  static async createWelcomeMessage(accessToken: string, accessTokenSecret: string, name: string, text: string) {
+    return this.makeApiRequest(
+      `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/new.json`,
+      'POST',
+      accessToken,
+      accessTokenSecret,
+      { 
+        name,
+        message_data: JSON.stringify({ text })
+      }
+    );
+  }
 }
 
 export default oauth;

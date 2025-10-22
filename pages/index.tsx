@@ -19,6 +19,10 @@ export default function LoginPage() {
     <div className="min-h-screen py-12 px-4">
       <div className="max-w-md mx-auto">
         <div className="card text-center">
+          <h1 className="text-3xl font-bold text-gray-900 mb-6">
+            Welcome Message Manager
+          </h1>
+          
           {error && (
             <div className="error mb-6">
               <p>
