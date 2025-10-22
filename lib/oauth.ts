@@ -264,23 +264,77 @@ export class TwitterOAuth {
   }
 
   static async deleteWelcomeMessage(accessToken: string, accessTokenSecret: string, id: string) {
-    return this.makeApiRequest(
-      `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/destroy.json`,
-      'POST',
-      accessToken,
-      accessTokenSecret,
-      { id }
-    );
+    const token = {
+      key: accessToken,
+      secret: accessTokenSecret,
+    };
+
+    // Delete endpoint expects ID as query parameter
+    const params = { id };
+    const url = `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/destroy.json?id=${id}`;
+
+    const requestData = {
+      url,
+      method: 'DELETE',
+      data: params,
+    };
+
+    const oauthHeaders = oauth.toHeader(oauth.authorize(requestData, token));
+    
+    const headers: Record<string, string> = { 
+      ...oauthHeaders,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    };
+
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error Response:', errorText);
+      throw new Error(`API request failed: ${response.statusText}`);
+    }
+
+    return response.json();
   }
 
   static async deleteWelcomeMessageRule(accessToken: string, accessTokenSecret: string, id: string) {
-    return this.makeApiRequest(
-      `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/rules/destroy.json`,
-      'POST',
-      accessToken,
-      accessTokenSecret,
-      { id }
-    );
+    const token = {
+      key: accessToken,
+      secret: accessTokenSecret,
+    };
+
+    // Delete endpoint expects ID as query parameter
+    const params = { id };
+    const url = `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/rules/destroy.json?id=${id}`;
+
+    const requestData = {
+      url,
+      method: 'DELETE',
+      data: params,
+    };
+
+    const oauthHeaders = oauth.toHeader(oauth.authorize(requestData, token));
+    
+    const headers: Record<string, string> = { 
+      ...oauthHeaders,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    };
+
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error Response:', errorText);
+      throw new Error(`API request failed: ${response.statusText}`);
+    }
+
+    return response.json();
   }
 
   static async createWelcomeMessage(accessToken: string, accessTokenSecret: string, name: string, text: string) {
