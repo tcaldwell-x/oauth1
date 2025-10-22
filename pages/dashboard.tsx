@@ -455,7 +455,12 @@ export default function Dashboard() {
               <span className="status-indicator status-green"></span>
               <span className="text-sm">POST /1.1/direct_messages/welcome_messages/rules/destroy.json - Delete rules</span>
             </div>
+            <div className="flex items-center space-x-2">
+              <span className="status-indicator status-green"></span>
+              <span className="text-sm">POST /1.1/direct_messages/welcome_messages/new.json - Create messages</span>
+            </div>
           </div>
+          
           <button
             onClick={() => {
               fetchWelcomeMessages()

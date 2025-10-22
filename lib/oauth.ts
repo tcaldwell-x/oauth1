@@ -289,30 +289,32 @@ export class TwitterOAuth {
       secret: accessTokenSecret,
     };
 
+    // The request body needs to be wrapped in a "welcome_message" object
+    const requestBody = {
+      welcome_message: {
+        name,
+        message_data: {
+          text
+        }
+      }
+    };
+
     const requestData = {
       url: `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/new.json`,
       method: 'POST',
-      data: { 
-        name,
-        message_data: JSON.stringify({ text })
-      },
+      data: requestBody,
     };
 
     const oauthHeaders = oauth.toHeader(oauth.authorize(requestData, token));
     const headers: Record<string, string> = { 
       ...oauthHeaders,
-      'Content-Type': 'application/x-www-form-urlencoded'
+      'Content-Type': 'application/json'
     };
-    
-    const body = new URLSearchParams({
-      name,
-      message_data: JSON.stringify({ text })
-    }).toString();
 
     const response = await fetch(requestData.url, {
       method: 'POST',
       headers,
-      body,
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
