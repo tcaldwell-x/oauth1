@@ -284,16 +284,44 @@ export class TwitterOAuth {
   }
 
   static async createWelcomeMessage(accessToken: string, accessTokenSecret: string, name: string, text: string) {
-    return this.makeApiRequest(
-      `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/new.json`,
-      'POST',
-      accessToken,
-      accessTokenSecret,
-      { 
+    const token = {
+      key: accessToken,
+      secret: accessTokenSecret,
+    };
+
+    const requestData = {
+      url: `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/new.json`,
+      method: 'POST',
+      data: { 
         name,
         message_data: JSON.stringify({ text })
-      }
-    );
+      },
+    };
+
+    const oauthHeaders = oauth.toHeader(oauth.authorize(requestData, token));
+    const headers: Record<string, string> = { 
+      ...oauthHeaders,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    };
+    
+    const body = new URLSearchParams({
+      name,
+      message_data: JSON.stringify({ text })
+    }).toString();
+
+    const response = await fetch(requestData.url, {
+      method: 'POST',
+      headers,
+      body,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error Response:', errorText);
+      throw new Error(`API request failed: ${response.statusText}`);
+    }
+
+    return response.json();
   }
 }
 
