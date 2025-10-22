@@ -297,7 +297,23 @@ export class TwitterOAuth {
       throw new Error(`API request failed: ${response.statusText}`);
     }
 
-    return response.json();
+    // DELETE requests often return 204 No Content or empty response
+    if (response.status === 204 || response.headers.get('content-length') === '0') {
+      return { success: true, message: 'Welcome message deleted successfully' };
+    }
+
+    // Try to parse JSON, but handle empty responses gracefully
+    const responseText = await response.text();
+    if (!responseText.trim()) {
+      return { success: true, message: 'Welcome message deleted successfully' };
+    }
+
+    try {
+      return JSON.parse(responseText);
+    } catch (error) {
+      // If JSON parsing fails, return success for DELETE operations
+      return { success: true, message: 'Welcome message deleted successfully' };
+    }
   }
 
   static async deleteWelcomeMessageRule(accessToken: string, accessTokenSecret: string, id: string) {
@@ -334,7 +350,23 @@ export class TwitterOAuth {
       throw new Error(`API request failed: ${response.statusText}`);
     }
 
-    return response.json();
+    // DELETE requests often return 204 No Content or empty response
+    if (response.status === 204 || response.headers.get('content-length') === '0') {
+      return { success: true, message: 'Welcome message rule deleted successfully' };
+    }
+
+    // Try to parse JSON, but handle empty responses gracefully
+    const responseText = await response.text();
+    if (!responseText.trim()) {
+      return { success: true, message: 'Welcome message rule deleted successfully' };
+    }
+
+    try {
+      return JSON.parse(responseText);
+    } catch (error) {
+      // If JSON parsing fails, return success for DELETE operations
+      return { success: true, message: 'Welcome message rule deleted successfully' };
+    }
   }
 
   static async createWelcomeMessage(accessToken: string, accessTokenSecret: string, name: string, text: string) {
