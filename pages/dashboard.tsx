@@ -12,41 +12,33 @@ interface TwitterUser {
   description: string
 }
 
-interface Tweet {
+interface WelcomeMessage {
   id: string
-  text: string
-  created_at: string
-  public_metrics?: {
-    retweet_count: number
-    like_count: number
-    reply_count: number
-    quote_count: number
-    impression_count?: number
+  created_timestamp: string
+  message_data: {
+    text: string
+    entities?: {
+      hashtags?: Array<{ text: string; indices: number[] }>
+      symbols?: Array<{ text: string; indices: number[] }>
+      urls?: Array<{ url: string; expanded_url: string; display_url: string; indices: number[] }>
+      user_mentions?: Array<{ screen_name: string; name: string; id: number; id_str: string; indices: number[] }>
+    }
   }
+  name: string
 }
 
-interface PostAnalytics {
+interface WelcomeMessageRule {
   id: string
-  timestamped_metrics: Array<{
-    metrics: {
-      impressions?: number
-      likes?: number
-      retweets?: number
-      replies?: number
-      engagements?: number
-      profile_visits?: number
-      url_clicks?: number
-      media_views?: number
-    }
-    timestamp: string
-  }>
+  created_timestamp: string
+  welcome_message_id: string
+  name: string
 }
 
 export default function Dashboard() {
   const router = useRouter()
   const [user, setUser] = useState<TwitterUser | null>(null)
-  const [tweets, setTweets] = useState<Tweet[]>([])
-  const [analytics, setAnalytics] = useState<PostAnalytics[]>([])
+  const [welcomeMessages, setWelcomeMessages] = useState<WelcomeMessage[]>([])
+  const [welcomeMessageRules, setWelcomeMessageRules] = useState<WelcomeMessageRule[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -71,46 +63,37 @@ export default function Dashboard() {
     }
   }
 
-  const fetchUserTweets = async (userId: string): Promise<Tweet[]> => {
+  const fetchWelcomeMessages = async (): Promise<WelcomeMessage[]> => {
     try {
-      const response = await fetch(`/api/twitter/user-tweets?userId=${userId}&maxResults=20`)
+      const response = await fetch('/api/twitter/welcome-messages')
       if (!response.ok) {
-        throw new Error('Failed to fetch tweets')
+        throw new Error('Failed to fetch welcome messages')
       }
-      const tweetsData = await response.json()
-      const tweets = tweetsData.data || []
-      setTweets(tweets)
-      return tweets
+      const messagesData = await response.json()
+      const messages = messagesData.welcome_messages || []
+      setWelcomeMessages(messages)
+      return messages
     } catch (err) {
-      setError('Failed to load tweets')
+      setError('Failed to load welcome messages')
       console.error(err)
       return []
     }
   }
 
-  const fetchPostAnalytics = async (postIds: string[]) => {
-    if (postIds.length === 0) return
-
+  const fetchWelcomeMessageRules = async (): Promise<WelcomeMessageRule[]> => {
     try {
-      // Get analytics for the last 30 days
-      const endTime = new Date().toISOString()
-      const startTime = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-      
-      
-      const response = await fetch(
-        `/api/twitter/analytics?postIds=${postIds.join(',')}&startTime=${startTime}&endTime=${endTime}&granularity=total`
-      )
-      
+      const response = await fetch('/api/twitter/welcome-message-rules')
       if (!response.ok) {
-        console.warn('Analytics not available for these posts')
-        return
+        throw new Error('Failed to fetch welcome message rules')
       }
-      
-      const analyticsData = await response.json()
-      setAnalytics(analyticsData.data || [])
+      const rulesData = await response.json()
+      const rules = rulesData.welcome_message_rules || []
+      setWelcomeMessageRules(rules)
+      return rules
     } catch (err) {
-      console.warn('Failed to load analytics:', err)
-      // Analytics might not be available for all accounts
+      setError('Failed to load welcome message rules')
+      console.error(err)
+      return []
     }
   }
 
@@ -120,11 +103,8 @@ export default function Dashboard() {
       const userData = await fetchUserProfile()
       
       if (userData) {
-        const userTweets = await fetchUserTweets(userData.id_str)
-        if (userTweets.length > 0) {
-          const postIds = userTweets.map((tweet: Tweet) => tweet.id)
-          await fetchPostAnalytics(postIds)
-        }
+        await fetchWelcomeMessages()
+        await fetchWelcomeMessageRules()
       }
       
       setLoading(false)
@@ -139,8 +119,46 @@ export default function Dashboard() {
     router.push('/')
   }
 
-  const getAnalyticsForPost = (postId: string) => {
-    return analytics.find(a => a.id === postId)
+  const deleteWelcomeMessage = async (id: string) => {
+    try {
+      const response = await fetch('/api/twitter/delete-welcome-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id }),
+      })
+      
+      if (response.ok) {
+        setWelcomeMessages(prev => prev.filter(msg => msg.id !== id))
+        // Also remove any rules that reference this message
+        setWelcomeMessageRules(prev => prev.filter(rule => rule.welcome_message_id !== id))
+      } else {
+        console.error('Failed to delete welcome message')
+      }
+    } catch (err) {
+      console.error('Error deleting welcome message:', err)
+    }
+  }
+
+  const deleteWelcomeMessageRule = async (id: string) => {
+    try {
+      const response = await fetch('/api/twitter/delete-welcome-message-rule', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id }),
+      })
+      
+      if (response.ok) {
+        setWelcomeMessageRules(prev => prev.filter(rule => rule.id !== id))
+      } else {
+        console.error('Failed to delete welcome message rule')
+      }
+    } catch (err) {
+      console.error('Error deleting welcome message rule:', err)
+    }
   }
 
 
@@ -225,69 +243,84 @@ export default function Dashboard() {
         )}
 
 
-        {/* Posts with Analytics */}
+        {/* Welcome Messages */}
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Posts with Analytics</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Welcome Messages</h3>
           
-          {error && tweets.length === 0 ? (
+          {error && welcomeMessages.length === 0 ? (
             <div className="error">
               <p>{error}</p>
             </div>
-          ) : tweets.length === 0 ? (
-            <p className="text-gray-600">No posts found.</p>
+          ) : welcomeMessages.length === 0 ? (
+            <p className="text-gray-600">No welcome messages found.</p>
           ) : (
             <div className="space-y-4">
-              {tweets.map((tweet) => {
-                const postAnalytics = getAnalyticsForPost(tweet.id)
-                const latestMetrics = postAnalytics?.timestamped_metrics?.[0]?.metrics
-                
+              {welcomeMessages.map((message) => (
+                <div key={message.id} className="tweet-card">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className="font-semibold text-gray-900">{message.name}</span>
+                        <span className="text-gray-400">·</span>
+                        <span className="text-gray-400 text-sm">
+                          {new Date(parseInt(message.created_timestamp)).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-gray-800 mb-3">{message.message_data.text}</p>
+                    </div>
+                    <button
+                      onClick={() => deleteWelcomeMessage(message.id)}
+                      className="btn btn-secondary text-sm ml-4"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Welcome Message Rules */}
+        <div className="card">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Welcome Message Rules</h3>
+          
+          {error && welcomeMessageRules.length === 0 ? (
+            <div className="error">
+              <p>{error}</p>
+            </div>
+          ) : welcomeMessageRules.length === 0 ? (
+            <p className="text-gray-600">No welcome message rules found.</p>
+          ) : (
+            <div className="space-y-4">
+              {welcomeMessageRules.map((rule) => {
+                const associatedMessage = welcomeMessages.find(msg => msg.id === rule.welcome_message_id)
                 return (
-                  <div key={tweet.id} className="tweet-card">
-                    <div className="flex items-start space-x-3">
+                  <div key={rule.id} className="tweet-card">
+                    <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-2">
-                          <span className="font-semibold text-gray-900">{user?.name}</span>
-                          <span className="text-gray-600">@{user?.screen_name}</span>
+                          <span className="font-semibold text-gray-900">{rule.name}</span>
                           <span className="text-gray-400">·</span>
                           <span className="text-gray-400 text-sm">
-                            {new Date(tweet.created_at).toLocaleDateString()}
+                            {new Date(parseInt(rule.created_timestamp)).toLocaleDateString()}
                           </span>
                         </div>
-                        <p className="text-gray-800 mb-3">{tweet.text}</p>
-                        
-                        {/* Basic Metrics */}
-                        <div className="flex space-x-6 text-sm text-gray-600 mb-3">
-                          <span>🔄 {tweet.public_metrics?.retweet_count || 0}</span>
-                          <span>❤️ {tweet.public_metrics?.like_count || 0}</span>
-                          <span>💬 {tweet.public_metrics?.reply_count || 0}</span>
-                          <span>📊 {tweet.public_metrics?.quote_count || 0}</span>
-                        </div>
-
-                        {/* Advanced Analytics */}
-                        {latestMetrics && (
-                          <div className="border-t border-gray-600 pt-3">
-                            <h4 className="text-sm font-semibold text-gray-400 mb-2">Analytics (30 days)</h4>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                              <div className="text-center">
-                                <div className="text-lg font-bold text-white">{latestMetrics.impressions?.toLocaleString() || 'N/A'}</div>
-                                <div className="text-gray-400">Impressions</div>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-lg font-bold text-white">{latestMetrics.engagements?.toLocaleString() || 'N/A'}</div>
-                                <div className="text-gray-400">Engagements</div>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-lg font-bold text-white">{latestMetrics.profile_visits?.toLocaleString() || 'N/A'}</div>
-                                <div className="text-gray-400">Profile Visits</div>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-lg font-bold text-white">{latestMetrics.url_clicks?.toLocaleString() || 'N/A'}</div>
-                                <div className="text-gray-400">Link Clicks</div>
-                              </div>
-                            </div>
-                          </div>
+                        {associatedMessage && (
+                          <p className="text-gray-600 text-sm mb-2">
+                            Associated with: "{associatedMessage.message_data.text}"
+                          </p>
                         )}
+                        <p className="text-gray-400 text-sm">
+                          Message ID: {rule.welcome_message_id}
+                        </p>
                       </div>
+                      <button
+                        onClick={() => deleteWelcomeMessageRule(rule.id)}
+                        className="btn btn-secondary text-sm ml-4"
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
                 )
@@ -298,32 +331,32 @@ export default function Dashboard() {
 
         {/* API Info */}
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">X API v2 Integration</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">X API v1.1 Welcome Messages Integration</h3>
           <p className="text-gray-600 mb-4">
-            This dashboard now uses X API v2 endpoints for enhanced analytics:
+            This dashboard uses X API v1.1 endpoints for welcome messages management:
           </p>
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
               <span className="status-indicator status-green"></span>
-              <span className="text-sm">GET /2/users/{user?.id_str}/tweets - User's posts</span>
+              <span className="text-sm">GET /1.1/direct_messages/welcome_messages/list.json - Welcome messages</span>
             </div>
             <div className="flex items-center space-x-2">
               <span className="status-indicator status-green"></span>
-              <span className="text-sm">GET /2/tweets/analytics - Post analytics</span>
+              <span className="text-sm">GET /1.1/direct_messages/welcome_messages/rules/list.json - Welcome message rules</span>
             </div>
             <div className="flex items-center space-x-2">
               <span className="status-indicator status-green"></span>
-              <span className="text-sm">GET /1.1/account/verify_credentials.json - User profile</span>
+              <span className="text-sm">POST /1.1/direct_messages/welcome_messages/destroy.json - Delete messages</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="status-indicator status-green"></span>
+              <span className="text-sm">POST /1.1/direct_messages/welcome_messages/rules/destroy.json - Delete rules</span>
             </div>
           </div>
           <button
             onClick={() => {
-              if (user) {
-                fetchUserTweets(user.id_str)
-                if (tweets.length > 0) {
-                  fetchPostAnalytics(tweets.map((t: Tweet) => t.id))
-                }
-              }
+              fetchWelcomeMessages()
+              fetchWelcomeMessageRules()
             }}
             className="btn btn-primary mt-4"
           >

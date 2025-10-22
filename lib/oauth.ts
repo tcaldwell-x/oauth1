@@ -243,6 +243,45 @@ export class TwitterOAuth {
       params
     );
   }
+
+  // Welcome Messages API methods
+  static async getWelcomeMessages(accessToken: string, accessTokenSecret: string) {
+    return this.makeApiRequest(
+      `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/list.json`,
+      'GET',
+      accessToken,
+      accessTokenSecret
+    );
+  }
+
+  static async getWelcomeMessageRules(accessToken: string, accessTokenSecret: string) {
+    return this.makeApiRequest(
+      `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/rules/list.json`,
+      'GET',
+      accessToken,
+      accessTokenSecret
+    );
+  }
+
+  static async deleteWelcomeMessage(accessToken: string, accessTokenSecret: string, id: string) {
+    return this.makeApiRequest(
+      `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/destroy.json`,
+      'POST',
+      accessToken,
+      accessTokenSecret,
+      { id }
+    );
+  }
+
+  static async deleteWelcomeMessageRule(accessToken: string, accessTokenSecret: string, id: string) {
+    return this.makeApiRequest(
+      `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/rules/destroy.json`,
+      'POST',
+      accessToken,
+      accessTokenSecret,
+      { id }
+    );
+  }
 }
 
 export default oauth;
