@@ -289,8 +289,23 @@ export class TwitterOAuth {
       secret: accessTokenSecret,
     };
 
-    // Match the working curl request format exactly
-    const requestBody = {
+    // For OAuth 1.0a with JSON, we need to use form parameters for signing
+    // but send the actual JSON in the body
+    const formParams = {
+      name,
+      message_data: JSON.stringify({ text })
+    };
+
+    const requestData = {
+      url: `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/new.json`,
+      method: 'POST',
+      data: formParams,
+    };
+
+    const oauthHeaders = oauth.toHeader(oauth.authorize(requestData, token));
+    
+    // Create the JSON body that the API expects
+    const jsonBody = {
       welcome_message: {
         name,
         message_data: {
@@ -299,13 +314,6 @@ export class TwitterOAuth {
       }
     };
 
-    const requestData = {
-      url: `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/new.json`,
-      method: 'POST',
-      data: requestBody,
-    };
-
-    const oauthHeaders = oauth.toHeader(oauth.authorize(requestData, token));
     const headers: Record<string, string> = { 
       ...oauthHeaders,
       'Content-Type': 'application/json'
@@ -314,7 +322,7 @@ export class TwitterOAuth {
     const response = await fetch(requestData.url, {
       method: 'POST',
       headers,
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify(jsonBody),
     });
 
     if (!response.ok) {
