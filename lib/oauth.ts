@@ -284,15 +284,12 @@ export class TwitterOAuth {
   }
 
   static async createWelcomeMessage(accessToken: string, accessTokenSecret: string, name: string, text: string) {
-    // Since OAuth 1.0a with JSON is problematic, let's try a different approach
-    // Use the existing working pattern from other methods but with proper JSON handling
-    
     const token = {
       key: accessToken,
       secret: accessTokenSecret,
     };
 
-    // Create the JSON body that matches your working curl request
+    // Create the JSON body exactly as specified
     const jsonBody = {
       welcome_message: {
         name,
@@ -302,22 +299,15 @@ export class TwitterOAuth {
       }
     };
 
-    // For OAuth 1.0a, we need to use form parameters for signature calculation
-    // but the actual request can be JSON
-    const formParams = {
-      name,
-      message_data: JSON.stringify({ text })
-    };
-
+    // For OAuth 1.0a with JSON, we need to include the JSON body in the signature calculation
     const requestData = {
       url: `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/new.json`,
       method: 'POST',
-      data: formParams, // Use form params for OAuth signature
+      data: jsonBody, // Include the JSON body in OAuth signature calculation
     };
 
     const oauthHeaders = oauth.toHeader(oauth.authorize(requestData, token));
     
-    // Override the content type to JSON
     const headers: Record<string, string> = { 
       ...oauthHeaders,
       'Content-Type': 'application/json'
@@ -326,7 +316,7 @@ export class TwitterOAuth {
     const response = await fetch(requestData.url, {
       method: 'POST',
       headers,
-      body: JSON.stringify(jsonBody), // Send JSON body
+      body: JSON.stringify(jsonBody),
     });
 
     if (!response.ok) {
