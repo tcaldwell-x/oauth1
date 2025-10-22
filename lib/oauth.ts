@@ -284,54 +284,65 @@ export class TwitterOAuth {
   }
 
   static async createWelcomeMessage(accessToken: string, accessTokenSecret: string, name: string, text: string) {
-    const token = {
-      key: accessToken,
-      secret: accessTokenSecret,
-    };
-
-    // For OAuth 1.0a with JSON, we need to use form parameters for signing
-    // but send the actual JSON in the body
-    const formParams = {
-      name,
-      message_data: JSON.stringify({ text })
-    };
-
-    const requestData = {
-      url: `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/new.json`,
-      method: 'POST',
-      data: formParams,
-    };
-
-    const oauthHeaders = oauth.toHeader(oauth.authorize(requestData, token));
-    
-    // Create the JSON body that the API expects
-    const jsonBody = {
-      welcome_message: {
-        name,
-        message_data: {
-          text
+    // Try using the standard makeApiRequest method first
+    // This should work if the API accepts form-encoded data
+    try {
+      return await this.makeApiRequest(
+        `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/new.json`,
+        'POST',
+        accessToken,
+        accessTokenSecret,
+        { 
+          name,
+          message_data: JSON.stringify({ text })
         }
+      );
+    } catch (error) {
+      console.log('Form-encoded approach failed, trying JSON approach...');
+      
+      // If form-encoded fails, try JSON with manual OAuth handling
+      const token = {
+        key: accessToken,
+        secret: accessTokenSecret,
+      };
+
+      // Create the JSON body
+      const jsonBody = {
+        welcome_message: {
+          name,
+          message_data: {
+            text
+          }
+        }
+      };
+
+      // For OAuth 1.0a with JSON, we need to include the JSON body in the signature
+      const requestData = {
+        url: `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/new.json`,
+        method: 'POST',
+        data: jsonBody,
+      };
+
+      const oauthHeaders = oauth.toHeader(oauth.authorize(requestData, token));
+      const headers: Record<string, string> = { 
+        ...oauthHeaders,
+        'Content-Type': 'application/json'
+      };
+
+      const response = await fetch(requestData.url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(jsonBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+        throw new Error(`API request failed: ${response.statusText}`);
       }
-    };
 
-    const headers: Record<string, string> = { 
-      ...oauthHeaders,
-      'Content-Type': 'application/json'
-    };
-
-    const response = await fetch(requestData.url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(jsonBody),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Error Response:', errorText);
-      throw new Error(`API request failed: ${response.statusText}`);
+      return response.json();
     }
-
-    return response.json();
   }
 }
 
