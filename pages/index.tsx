@@ -19,15 +19,6 @@ export default function LoginPage() {
     <div className="min-h-screen py-12 px-4">
       <div className="max-w-md mx-auto">
         <div className="card text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">
-            X OAuth 1.0 Demo
-          </h1>
-          
-          <p className="text-gray-600 mb-8">
-            This app demonstrates OAuth 1.0 authentication with X (formerly Twitter) and 
-            shows how to make authenticated API requests.
-          </p>
-
           {error && (
             <div className="error mb-6">
               <p>
@@ -55,17 +46,6 @@ export default function LoginPage() {
             </svg>
             Login with X
           </button>
-
-          <div className="setup-box">
-            <h3 className="font-semibold text-blue-900 mb-2">Setup Instructions:</h3>
-            <ol className="text-sm text-blue-800 text-left space-y-1">
-              <li>1. Create an X Developer account</li>
-              <li>2. Create a new app at developer.twitter.com</li>
-              <li>3. Copy your Consumer Key and Consumer Secret</li>
-              <li>4. Update the environment variables in Vercel</li>
-              <li>5. Set callback URL to: https://oauth1.vercel.app/api/auth/twitter/callback</li>
-            </ol>
-          </div>
         </div>
       </div>
     </div>

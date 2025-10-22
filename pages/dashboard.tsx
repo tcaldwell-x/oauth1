@@ -49,22 +49,7 @@ export default function Dashboard() {
   const [analytics, setAnalytics] = useState<PostAnalytics[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [showTokens, setShowTokens] = useState(false)
-  const [showUrls, setShowUrls] = useState(false)
-  const [tokens, setTokens] = useState<{accessToken: string, accessTokenSecret: string} | null>(null)
-  const [apiUrls, setApiUrls] = useState<{url: string, method: string, description: string}[]>([])
 
-  const fetchTokens = async () => {
-    try {
-      const response = await fetch('/api/twitter/tokens')
-      if (response.ok) {
-        const tokenData = await response.json()
-        setTokens(tokenData)
-      }
-    } catch (err) {
-      console.warn('Failed to fetch tokens:', err)
-    }
-  }
 
   const fetchUserProfile = async () => {
     try {
@@ -78,14 +63,6 @@ export default function Dashboard() {
       }
       const userData = await response.json()
       setUser(userData)
-      
-      // Add profile API URL to the list
-      setApiUrls(prev => [...prev, {
-        url: 'https://api.twitter.com/1.1/account/verify_credentials.json',
-        method: 'GET',
-        description: 'User Profile'
-      }])
-      
       return userData
     } catch (err) {
       setError('Failed to load user profile')
@@ -103,14 +80,6 @@ export default function Dashboard() {
       const tweetsData = await response.json()
       const tweets = tweetsData.data || []
       setTweets(tweets)
-      
-      // Add user tweets API URL to the list
-      setApiUrls(prev => [...prev, {
-        url: `https://api.x.com/2/users/${userId}/tweets?tweet.fields=created_at,public_metrics,context_annotations&max_results=20`,
-        method: 'GET',
-        description: 'User Tweets'
-      }])
-      
       return tweets
     } catch (err) {
       setError('Failed to load tweets')
@@ -127,15 +96,6 @@ export default function Dashboard() {
       const endTime = new Date().toISOString()
       const startTime = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
       
-      // Build the analytics URL
-      const analyticsUrl = `https://api.x.com/2/tweets/analytics?ids=${postIds.join(',')}&start_time=${startTime}&end_time=${endTime}&granularity=total&analytics.fields=impressions,likes,retweets,replies,engagements,profile_visits,url_clicks,media_views`
-      
-      // Add analytics API URL to the list
-      setApiUrls(prev => [...prev, {
-        url: analyticsUrl,
-        method: 'GET',
-        description: `Post Analytics (${postIds.length} posts)`
-      }])
       
       const response = await fetch(
         `/api/twitter/analytics?postIds=${postIds.join(',')}&startTime=${startTime}&endTime=${endTime}&granularity=total`
@@ -157,8 +117,6 @@ export default function Dashboard() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true)
-      setApiUrls([]) // Reset API URLs
-      await fetchTokens()
       const userData = await fetchUserProfile()
       
       if (userData) {
@@ -185,10 +143,6 @@ export default function Dashboard() {
     return analytics.find(a => a.id === postId)
   }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    // You could add a toast notification here
-  }
 
   if (loading) {
     return (
@@ -270,115 +224,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* OAuth Tokens Debug Section */}
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">OAuth Tokens (Debug)</h3>
-            <button 
-              onClick={() => setShowTokens(!showTokens)}
-              className="btn btn-secondary text-sm"
-            >
-              {showTokens ? 'Hide' : 'Show'} Tokens
-            </button>
-          </div>
-          
-          {showTokens && tokens && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Access Token:
-                </label>
-                <div className="flex items-center space-x-2">
-                  <code className="flex-1 p-3 bg-gray-800 text-gray-300 rounded text-sm break-all">
-                    {tokens.accessToken}
-                  </code>
-                  <button
-                    onClick={() => copyToClipboard(tokens.accessToken)}
-                    className="btn btn-secondary text-xs px-3 py-2"
-                  >
-                    Copy
-                  </button>
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Access Token Secret:
-                </label>
-                <div className="flex items-center space-x-2">
-                  <code className="flex-1 p-3 bg-gray-800 text-gray-300 rounded text-sm break-all">
-                    {tokens.accessTokenSecret}
-                  </code>
-                  <button
-                    onClick={() => copyToClipboard(tokens.accessTokenSecret)}
-                    className="btn btn-secondary text-xs px-3 py-2"
-                  >
-                    Copy
-                  </button>
-                </div>
-              </div>
-              
-              <div className="text-xs text-gray-500 bg-gray-800 p-3 rounded">
-                <strong>Note:</strong> These tokens are used for API authentication. Keep them secure and never share them publicly.
-              </div>
-            </div>
-          )}
-          
-          {showTokens && !tokens && (
-            <div className="text-gray-500 text-sm">
-              No tokens available. Please log in again.
-            </div>
-          )}
-        </div>
-
-        {/* API URLs Debug Section */}
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">API Request URLs (Debug)</h3>
-            <button 
-              onClick={() => setShowUrls(!showUrls)}
-              className="btn btn-secondary text-sm"
-            >
-              {showUrls ? 'Hide' : 'Show'} URLs
-            </button>
-          </div>
-          
-          {showUrls && apiUrls.length > 0 && (
-            <div className="space-y-4">
-              {apiUrls.map((apiCall, index) => (
-                <div key={index} className="border border-gray-600 rounded p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-400">{apiCall.description}</span>
-                    <span className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
-                      {apiCall.method}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <code className="flex-1 p-3 bg-gray-800 text-gray-300 rounded text-sm break-all">
-                      {apiCall.url}
-                    </code>
-                    <button
-                      onClick={() => copyToClipboard(apiCall.url)}
-                      className="btn btn-secondary text-xs px-3 py-2"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                </div>
-              ))}
-              
-              <div className="text-xs text-gray-500 bg-gray-800 p-3 rounded">
-                <strong>Note:</strong> These are the actual X API endpoints being called. Use these URLs with your OAuth tokens for testing.
-              </div>
-            </div>
-          )}
-          
-          {showUrls && apiUrls.length === 0 && (
-            <div className="text-gray-500 text-sm">
-              No API calls made yet. Refresh the data to see URLs.
-            </div>
-          )}
-        </div>
 
         {/* Posts with Analytics */}
         <div className="card">
@@ -474,7 +319,6 @@ export default function Dashboard() {
           <button
             onClick={() => {
               if (user) {
-                setApiUrls([]) // Reset URLs
                 fetchUserTweets(user.id_str)
                 if (tweets.length > 0) {
                   fetchPostAnalytics(tweets.map((t: Tweet) => t.id))
