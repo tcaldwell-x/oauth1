@@ -41,9 +41,6 @@ export default function Dashboard() {
   const [welcomeMessageRules, setWelcomeMessageRules] = useState<WelcomeMessageRule[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [showCreateForm, setShowCreateForm] = useState(false)
-  const [createFormData, setCreateFormData] = useState({ name: '', text: '' })
-  const [creating, setCreating] = useState(false)
 
 
   const fetchUserProfile = async () => {
@@ -164,40 +161,6 @@ export default function Dashboard() {
     }
   }
 
-  const createWelcomeMessage = async (name: string, text: string) => {
-    setCreating(true)
-    try {
-      const response = await fetch('/api/twitter/create-welcome-message', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, text }),
-      })
-      
-      if (response.ok) {
-        // Refresh the welcome messages list
-        await fetchWelcomeMessages()
-        setCreateFormData({ name: '', text: '' })
-        setShowCreateForm(false)
-      } else {
-        const errorData = await response.json()
-        setError(errorData.error || 'Failed to create welcome message')
-      }
-    } catch (err) {
-      console.error('Error creating welcome message:', err)
-      setError('Failed to create welcome message')
-    } finally {
-      setCreating(false)
-    }
-  }
-
-  const handleCreateSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (createFormData.name.trim() && createFormData.text.trim()) {
-      createWelcomeMessage(createFormData.name.trim(), createFormData.text.trim())
-    }
-  }
 
 
   if (loading) {
@@ -281,70 +244,6 @@ export default function Dashboard() {
         )}
 
 
-        {/* Create Welcome Message Form */}
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Create Welcome Message</h3>
-            <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="btn btn-primary"
-            >
-              {showCreateForm ? 'Cancel' : 'Create New'}
-            </button>
-          </div>
-          
-          {showCreateForm && (
-            <form onSubmit={handleCreateSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Message Name:
-                </label>
-                <input
-                  type="text"
-                  value={createFormData.name}
-                  onChange={(e => setCreateFormData(prev => ({ ...prev, name: e.target.value })))}
-                  placeholder="Enter a name for this welcome message"
-                  className="w-full p-3 bg-gray-800 text-gray-300 rounded border border-gray-600 focus:border-gray-500 focus:outline-none"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Message Text:
-                </label>
-                <textarea
-                  value={createFormData.text}
-                  onChange={e => setCreateFormData(prev => ({ ...prev, text: e.target.value }))}
-                  placeholder="Enter the welcome message text"
-                  rows={4}
-                  className="w-full p-3 bg-gray-800 text-gray-300 rounded border border-gray-600 focus:border-gray-500 focus:outline-none resize-vertical"
-                  required
-                />
-              </div>
-              
-              <div className="flex space-x-3">
-                <button
-                  type="submit"
-                  disabled={creating || !createFormData.name.trim() || !createFormData.text.trim()}
-                  className="btn btn-primary"
-                >
-                  {creating ? 'Creating...' : 'Create Message'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateForm(false)
-                    setCreateFormData({ name: '', text: '' })
-                  }}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
 
         {/* Welcome Messages */}
         <div className="card">
@@ -449,15 +348,11 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center space-x-2">
               <span className="status-indicator status-green"></span>
-              <span className="text-sm">POST /1.1/direct_messages/welcome_messages/destroy.json - Delete messages</span>
+              <span className="text-sm">DELETE /1.1/direct_messages/welcome_messages/destroy.json - Delete messages</span>
             </div>
             <div className="flex items-center space-x-2">
               <span className="status-indicator status-green"></span>
-              <span className="text-sm">POST /1.1/direct_messages/welcome_messages/rules/destroy.json - Delete rules</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="status-indicator status-green"></span>
-              <span className="text-sm">POST /1.1/direct_messages/welcome_messages/new.json - Create messages</span>
+              <span className="text-sm">DELETE /1.1/direct_messages/welcome_messages/rules/destroy.json - Delete rules</span>
             </div>
           </div>
           

@@ -369,55 +369,6 @@ export class TwitterOAuth {
     }
   }
 
-  static async createWelcomeMessage(accessToken: string, accessTokenSecret: string, name: string, text: string) {
-    const token = {
-      key: accessToken,
-      secret: accessTokenSecret,
-    };
-
-    // Use form parameters for OAuth signature calculation (like delete methods)
-    const formParams = {
-      name,
-      message_data: JSON.stringify({ text })
-    };
-
-    const requestData = {
-      url: `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/new.json`,
-      method: 'POST',
-      data: formParams, // Use form params for OAuth signature
-    };
-
-    const oauthHeaders = oauth.toHeader(oauth.authorize(requestData, token));
-    
-    // Create the JSON body that the API expects
-    const jsonBody = {
-      welcome_message: {
-        name,
-        message_data: {
-          text
-        }
-      }
-    };
-
-    const headers: Record<string, string> = { 
-      ...oauthHeaders,
-      'Content-Type': 'application/json'
-    };
-
-    const response = await fetch(requestData.url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(jsonBody), // Send JSON body
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Error Response:', errorText);
-      throw new Error(`API request failed: ${response.statusText}`);
-    }
-
-    return response.json();
-  }
 }
 
 export default oauth;
