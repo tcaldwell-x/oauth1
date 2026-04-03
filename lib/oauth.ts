@@ -58,7 +58,7 @@ export interface PostAnalytics {
 
 export class TwitterOAuth {
   private static readonly REQUEST_TOKEN_URL = 'https://api.twitter.com/oauth/request_token';
-  private static readonly AUTHORIZE_URL = 'https://api.twitter.com/oauth/authenticate';
+  private static readonly AUTHORIZE_URL = 'https://api.twitter.com/oauth/authorize';
   private static readonly ACCESS_TOKEN_URL = 'https://api.twitter.com/oauth/access_token';
   private static readonly API_V1_BASE_URL = 'https://api.twitter.com/1.1';
   private static readonly API_V2_BASE_URL = 'https://api.x.com/2';
