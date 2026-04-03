@@ -25,12 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       `oauth_token_secret=${requestTokenResponse.oauth_token_secret}; HttpOnly; Secure=${process.env.NODE_ENV === 'production'}; Max-Age=900; Path=/`,
     ]);
 
-    // force_login=true ensures Twitter shows the auth screen again
-    const authorizeUrl =
-      TwitterOAuth.getAuthorizationUrl(requestTokenResponse.oauth_token) +
-      '&force_login=true';
-
-    res.redirect(authorizeUrl);
+    res.redirect(TwitterOAuth.getAuthorizationUrl(requestTokenResponse.oauth_token));
   } catch (error) {
     console.error('Error in Twitter re-auth:', error);
     res.status(500).json({ error: 'Failed to initiate Twitter re-auth' });
