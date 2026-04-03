@@ -429,3 +429,139 @@ code {
 .break-all {
   word-break: break-all;
 }
+
+/* ── Token Revocation Debug Panel ── */
+
+.debug-panel {
+  border: 1px solid #2563eb;
+  background: #0a0f1a;
+}
+
+.debug-instructions {
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+}
+
+.debug-instructions ol li {
+  line-height: 1.6;
+}
+
+.debug-summary {
+  padding: 0.5rem 0;
+}
+
+/* Re-auth button — stands out */
+.btn-reauth {
+  background: #2563eb;
+  color: #fff;
+  border: 1px solid #3b82f6;
+  font-weight: 600;
+}
+.btn-reauth:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+.btn-reauth:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Individual token row */
+.token-entry {
+  border: 1px solid #1f2937;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  background: #111827;
+  transition: border-color 0.15s;
+}
+.token-entry.token-current {
+  border-color: #2563eb;
+}
+.token-entry.token-revoked {
+  border-color: #dc2626;
+  background: #1a0a0a;
+}
+
+/* Badge pills */
+.token-auth-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #1e293b;
+  color: #94a3b8;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+}
+.token-badge-current {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: #1e3a5f;
+  color: #60a5fa;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.token-badge-changed {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: #3b1f0b;
+  color: #fb923c;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.token-badge-same {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: #1e293b;
+  color: #64748b;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Validation status pills */
+.token-status-valid {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: #052e16;
+  color: #4ade80;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+.token-status-invalid {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: #450a0a;
+  color: #f87171;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+.token-status-error {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: #422006;
+  color: #fbbf24;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+/* Monospace token values */
+.token-value {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.8rem;
+  background: #1e293b;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  color: #e2e8f0;
+}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 
 interface TwitterUser {
@@ -34,6 +34,21 @@ interface WelcomeMessageRule {
   name: string
 }
 
+interface TokenEntry {
+  id: string
+  userId: string
+  screenName: string
+  accessTokenSuffix: string
+  accessTokenSecretSuffix: string
+  obtainedAt: string
+  authSequence: number
+  lastValidatedAt: string | null
+  lastValidationResult: 'valid' | 'invalid' | 'error' | null
+  lastValidationError: string | null
+  isCurrent: boolean
+  tokenChanged: boolean
+}
+
 export default function Dashboard() {
   const router = useRouter()
   const [user, setUser] = useState<TwitterUser | null>(null)
@@ -42,6 +57,56 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // ── Token debug state ──
+  const [tokenHistory, setTokenHistory] = useState<TokenEntry[]>([])
+  const [totalAuths, setTotalAuths] = useState(0)
+  const [validatingTokenId, setValidatingTokenId] = useState<string | null>(null)
+  const [validatingAll, setValidatingAll] = useState(false)
+  const [reauthing, setReauthing] = useState(false)
+
+  const fetchTokenHistory = useCallback(async () => {
+    try {
+      const response = await fetch('/api/twitter/token-history')
+      if (!response.ok) return
+      const data = await response.json()
+      setTokenHistory(data.tokens || [])
+      setTotalAuths(data.totalAuths || 0)
+    } catch (err) {
+      console.error('Failed to fetch token history:', err)
+    }
+  }, [])
+
+  const validateToken = async (tokenId: string) => {
+    setValidatingTokenId(tokenId)
+    try {
+      const response = await fetch('/api/twitter/validate-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokenId }),
+      })
+      if (response.ok) {
+        // Refresh history to pick up updated validation results
+        await fetchTokenHistory()
+      }
+    } catch (err) {
+      console.error('Failed to validate token:', err)
+    } finally {
+      setValidatingTokenId(null)
+    }
+  }
+
+  const validateAllTokens = async () => {
+    setValidatingAll(true)
+    for (const token of tokenHistory) {
+      await validateToken(token.id)
+    }
+    setValidatingAll(false)
+  }
+
+  const handleReauth = () => {
+    setReauthing(true)
+    window.location.href = '/api/auth/twitter/reauth'
+  }
 
   const fetchUserProfile = async () => {
     try {
@@ -105,6 +170,7 @@ export default function Dashboard() {
       if (userData) {
         await fetchWelcomeMessages()
         await fetchWelcomeMessageRules()
+        await fetchTokenHistory()
       }
       
       setLoading(false)
@@ -244,6 +310,138 @@ export default function Dashboard() {
         )}
 
 
+
+        {/* ── Token Revocation Debug Panel ── */}
+        <div className="card debug-panel">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                🔍 OAuth 1.0a Token Revocation Debugger
+              </h3>
+              <p className="text-gray-400 text-sm mt-1">
+                Reproduce the bug: re-authenticate and check if old tokens get revoked
+              </p>
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={handleReauth}
+                disabled={reauthing}
+                className="btn btn-reauth"
+              >
+                {reauthing ? 'Redirecting…' : '🔄 Re-Authenticate (OAuth 1.0a)'}
+              </button>
+            </div>
+          </div>
+
+          {/* Instructions */}
+          <div className="debug-instructions mb-4">
+            <p className="font-semibold text-sm mb-2">How to reproduce the bug:</p>
+            <ol className="text-sm space-y-1" style={{ paddingLeft: '1.25rem', listStyleType: 'decimal' }}>
+              <li>Click <strong>"Re-Authenticate"</strong> above to do a second OAuth 1.0a login</li>
+              <li>After returning, click <strong>"Validate All Tokens"</strong> to check each token</li>
+              <li>If Auth #1's token shows <span className="token-status-invalid">INVALID</span>, the re-auth revoked it</li>
+              <li>Repeat multiple times — the customer reports it doesn't always happen</li>
+            </ol>
+          </div>
+
+          {/* Summary */}
+          <div className="debug-summary mb-4">
+            <div className="grid grid-cols-2 gap-4" style={{ maxWidth: '400px' }}>
+              <div>
+                <span className="text-gray-400 text-sm">Total Auths</span>
+                <p className="font-bold text-xl">{totalAuths}</p>
+              </div>
+              <div>
+                <span className="text-gray-400 text-sm">Tokens Tracked</span>
+                <p className="font-bold text-xl">{tokenHistory.length}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Token list */}
+          {tokenHistory.length === 0 ? (
+            <div className="text-gray-400 text-sm" style={{ padding: '1rem', textAlign: 'center', border: '1px dashed #333', borderRadius: '6px' }}>
+              No tokens recorded yet. Log in to start tracking, then re-authenticate to test revocation.
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-400">Token History (newest first)</span>
+                <button
+                  onClick={validateAllTokens}
+                  disabled={validatingAll}
+                  className="btn btn-secondary text-sm"
+                  style={{ padding: '0.4rem 0.8rem' }}
+                >
+                  {validatingAll ? 'Validating…' : '✓ Validate All Tokens'}
+                </button>
+              </div>
+              <div className="space-y-2">
+                {tokenHistory.map((token) => (
+                  <div
+                    key={token.id}
+                    className={`token-entry ${token.isCurrent ? 'token-current' : ''} ${
+                      token.lastValidationResult === 'invalid' ? 'token-revoked' : ''
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <span className="token-auth-badge">Auth #{token.authSequence}</span>
+                          {token.isCurrent && <span className="token-badge-current">CURRENT</span>}
+                          {token.tokenChanged && <span className="token-badge-changed">NEW TOKEN</span>}
+                          {!token.tokenChanged && token.authSequence > 1 && (
+                            <span className="token-badge-same">SAME TOKEN</span>
+                          )}
+                          {token.lastValidationResult === 'valid' && (
+                            <span className="token-status-valid">✓ VALID</span>
+                          )}
+                          {token.lastValidationResult === 'invalid' && (
+                            <span className="token-status-invalid">✗ REVOKED</span>
+                          )}
+                          {token.lastValidationResult === 'error' && (
+                            <span className="token-status-error">⚠ ERROR</span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-400 space-y-1">
+                          <div>
+                            <span className="text-gray-500">Token:</span>{' '}
+                            <code className="token-value">…{token.accessTokenSuffix}</code>
+                            <span className="text-gray-500" style={{ marginLeft: '0.75rem' }}>Secret:</span>{' '}
+                            <code className="token-value">…{token.accessTokenSecretSuffix}</code>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Obtained:</span>{' '}
+                            {new Date(token.obtainedAt).toLocaleString()}
+                            {token.lastValidatedAt && (
+                              <>
+                                <span className="text-gray-500" style={{ marginLeft: '0.75rem' }}>Validated:</span>{' '}
+                                {new Date(token.lastValidatedAt).toLocaleString()}
+                              </>
+                            )}
+                          </div>
+                          {token.lastValidationError && (
+                            <div className="text-sm" style={{ color: '#ff6b6b' }}>
+                              Error: {token.lastValidationError}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => validateToken(token.id)}
+                        disabled={validatingTokenId === token.id || validatingAll}
+                        className="btn btn-secondary text-sm"
+                        style={{ padding: '0.35rem 0.7rem', whiteSpace: 'nowrap' }}
+                      >
+                        {validatingTokenId === token.id ? '…' : 'Validate'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Welcome Messages */}
         <div className="card">
