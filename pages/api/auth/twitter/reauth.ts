@@ -8,8 +8,8 @@ import { TwitterOAuth } from '../../../../lib/oauth';
  * cookies.  This lets us get a second access token for the same user so we
  * can test whether the first token gets revoked.
  *
- * Uses `force_login=true` on the authorize URL so Twitter always shows the
- * login screen even if the user is already signed in.
+ * Uses /oauth/authenticate (auto-approves if already authorized) with
+ * force_login=true so Twitter shows the login screen again.
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
