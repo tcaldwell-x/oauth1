@@ -231,7 +231,8 @@ export class TwitterOAuth {
       `${this.ADS_API_BASE_URL}/accounts/${accountId}/billing/setup-intent`,
       'POST',
       accessToken,
-      accessTokenSecret
+      accessTokenSecret,
+      { account_id: accountId }
     );
   }
 
@@ -241,7 +242,7 @@ export class TwitterOAuth {
       'POST',
       accessToken,
       accessTokenSecret,
-      body
+      { account_id: accountId, ...body }
     );
   }
 }
