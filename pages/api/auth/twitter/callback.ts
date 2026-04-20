@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { TwitterOAuth } from '../../../../lib/oauth';
-import { tokenStore } from '../../../../lib/token-store';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -25,18 +24,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       oauthTokenSecret,
       oauth_verifier as string
     );
-
-    // ── Token-revocation debug: persist every token we receive ──
-    const storedToken = tokenStore.addToken(
-      accessTokenResponse.user_id,
-      accessTokenResponse.screen_name,
-      accessTokenResponse.oauth_token,
-      accessTokenResponse.oauth_token_secret,
-    );
-    console.log(
-      `[token-store] Auth #${storedToken.authSequence} for @${storedToken.screenName} ` +
-      `(user ${storedToken.userId}), token …${storedToken.accessToken.slice(-8)}`,
-    );
     
     // Set secure cookies with access tokens
     const cookieOptions = `HttpOnly; Secure=${process.env.NODE_ENV === 'production'}; Max-Age=${30 * 24 * 60 * 60}; Path=/`;
@@ -48,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         user_id: accessTokenResponse.user_id,
         screen_name: accessTokenResponse.screen_name,
       })}; ${cookieOptions}`,
-      `oauth_token_secret=; HttpOnly; Max-Age=0; Path=/` // Clear temporary token
+      `oauth_token_secret=; HttpOnly; Max-Age=0; Path=/`
     ]);
     
     res.redirect(`${process.env.NEXTAUTH_URL}/dashboard`);

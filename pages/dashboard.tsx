@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 
 interface TwitterUser {
@@ -12,171 +12,116 @@ interface TwitterUser {
   description: string
 }
 
-interface WelcomeMessage {
+interface AdsAccount {
   id: string
-  created_timestamp: string
-  message_data: {
-    text: string
-    entities?: {
-      hashtags?: Array<{ text: string; indices: number[] }>
-      symbols?: Array<{ text: string; indices: number[] }>
-      urls?: Array<{ url: string; expanded_url: string; display_url: string; indices: number[] }>
-      user_mentions?: Array<{ screen_name: string; name: string; id: number; id_str: string; indices: number[] }>
-    }
-  }
   name: string
+  business_name?: string
+  approval_status: string
+  salt?: string
 }
 
-interface WelcomeMessageRule {
-  id: string
-  created_timestamp: string
-  welcome_message_id: string
-  name: string
+interface EndpointResult {
+  loading: boolean
+  data: any | null
+  error: string | null
+  status: number | null
+  timestamp: string | null
 }
 
-interface TokenEntry {
-  id: string
-  userId: string
-  screenName: string
-  accessTokenSuffix: string
-  accessTokenSecretSuffix: string
-  obtainedAt: string
-  authSequence: number
-  lastValidatedAt: string | null
-  lastValidationResult: 'valid' | 'invalid' | 'error' | null
-  lastValidationError: string | null
-  isCurrent: boolean
-  tokenChanged: boolean
-}
+const EMPTY_RESULT: EndpointResult = { loading: false, data: null, error: null, status: null, timestamp: null }
 
 export default function Dashboard() {
   const router = useRouter()
   const [user, setUser] = useState<TwitterUser | null>(null)
-  const [welcomeMessages, setWelcomeMessages] = useState<WelcomeMessage[]>([])
-  const [welcomeMessageRules, setWelcomeMessageRules] = useState<WelcomeMessageRule[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // ── Token debug state ──
-  const [tokenHistory, setTokenHistory] = useState<TokenEntry[]>([])
-  const [totalAuths, setTotalAuths] = useState(0)
-  const [validatingTokenId, setValidatingTokenId] = useState<string | null>(null)
-  const [validatingAll, setValidatingAll] = useState(false)
-  const [reauthing, setReauthing] = useState(false)
+  // Ads state
+  const [accounts, setAccounts] = useState<AdsAccount[]>([])
+  const [accountsResult, setAccountsResult] = useState<EndpointResult>(EMPTY_RESULT)
+  const [selectedAccountId, setSelectedAccountId] = useState<string>('')
 
-  const fetchTokenHistory = useCallback(async () => {
-    try {
-      const response = await fetch('/api/twitter/token-history')
-      if (!response.ok) return
-      const data = await response.json()
-      setTokenHistory(data.tokens || [])
-      setTotalAuths(data.totalAuths || 0)
-    } catch (err) {
-      console.error('Failed to fetch token history:', err)
-    }
-  }, [])
+  // Per-endpoint results
+  const [fundingResult, setFundingResult] = useState<EndpointResult>(EMPTY_RESULT)
+  const [paymentResult, setPaymentResult] = useState<EndpointResult>(EMPTY_RESULT)
+  const [setupIntentResult, setSetupIntentResult] = useState<EndpointResult>(EMPTY_RESULT)
+  const [confirmCardResult, setConfirmCardResult] = useState<EndpointResult>(EMPTY_RESULT)
 
-  const validateToken = async (tokenId: string) => {
-    setValidatingTokenId(tokenId)
-    try {
-      const response = await fetch('/api/twitter/validate-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tokenId }),
-      })
-      if (response.ok) {
-        // Refresh history to pick up updated validation results
-        await fetchTokenHistory()
-      }
-    } catch (err) {
-      console.error('Failed to validate token:', err)
-    } finally {
-      setValidatingTokenId(null)
-    }
-  }
-
-  const validateAllTokens = async () => {
-    setValidatingAll(true)
-    for (const token of tokenHistory) {
-      await validateToken(token.id)
-    }
-    setValidatingAll(false)
-  }
-
-  const handleReauth = () => {
-    setReauthing(true)
-    window.location.href = '/api/auth/twitter/reauth'
-  }
-
-  const fetchUserProfile = async () => {
-    try {
-      const response = await fetch('/api/twitter/profile')
-      if (!response.ok) {
-        if (response.status === 401) {
-          router.push('/')
-          return
-        }
-        throw new Error('Failed to fetch profile')
-      }
-      const userData = await response.json()
-      setUser(userData)
-      return userData
-    } catch (err) {
-      setError('Failed to load user profile')
-      console.error(err)
-      return null
-    }
-  }
-
-  const fetchWelcomeMessages = async (): Promise<WelcomeMessage[]> => {
-    try {
-      const response = await fetch('/api/twitter/welcome-messages')
-      if (!response.ok) {
-        throw new Error('Failed to fetch welcome messages')
-      }
-      const messagesData = await response.json()
-      const messages = messagesData.welcome_messages || []
-      setWelcomeMessages(messages)
-      return messages
-    } catch (err) {
-      setError('Failed to load welcome messages')
-      console.error(err)
-      return []
-    }
-  }
-
-  const fetchWelcomeMessageRules = async (): Promise<WelcomeMessageRule[]> => {
-    try {
-      const response = await fetch('/api/twitter/welcome-message-rules')
-      if (!response.ok) {
-        throw new Error('Failed to fetch welcome message rules')
-      }
-      const rulesData = await response.json()
-      const rules = rulesData.welcome_message_rules || []
-      setWelcomeMessageRules(rules)
-      return rules
-    } catch (err) {
-      setError('Failed to load welcome message rules')
-      console.error(err)
-      return []
-    }
-  }
+  // confirm-card body editor
+  const [confirmCardBody, setConfirmCardBody] = useState('{}')
 
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true)
-      const userData = await fetchUserProfile()
-      
-      if (userData) {
-        await fetchWelcomeMessages()
-        await fetchWelcomeMessageRules()
-        await fetchTokenHistory()
+    const loadProfile = async () => {
+      try {
+        const response = await fetch('/api/twitter/profile')
+        if (!response.ok) {
+          if (response.status === 401) { router.push('/'); return }
+          throw new Error('Failed to fetch profile')
+        }
+        setUser(await response.json())
+      } catch {
+        setError('Failed to load user profile')
+      } finally {
+        setLoading(false)
       }
-      
-      setLoading(false)
     }
-    loadData()
+    loadProfile()
   }, [])
+
+  const fetchEndpoint = async (
+    url: string,
+    method: 'GET' | 'POST',
+    setter: (r: EndpointResult) => void,
+    body?: any,
+  ) => {
+    setter({ loading: true, data: null, error: null, status: null, timestamp: null })
+    try {
+      const opts: RequestInit = { method, headers: { 'Content-Type': 'application/json' } }
+      if (method === 'POST' && body !== undefined) {
+        opts.body = JSON.stringify(body)
+      }
+      const res = await fetch(url, opts)
+      const json = await res.json()
+      setter({ loading: false, data: json, error: null, status: res.status, timestamp: new Date().toLocaleTimeString() })
+      return { ok: res.ok, data: json }
+    } catch (err: any) {
+      setter({ loading: false, data: null, error: err.message, status: null, timestamp: new Date().toLocaleTimeString() })
+      return { ok: false, data: null }
+    }
+  }
+
+  const handleFetchAccounts = async () => {
+    const result = await fetchEndpoint('/api/ads/accounts', 'GET', setAccountsResult)
+    if (result.ok && result.data?.data) {
+      setAccounts(result.data.data)
+      if (result.data.data.length > 0 && !selectedAccountId) {
+        setSelectedAccountId(result.data.data[0].id)
+      }
+    }
+  }
+
+  const handleFetchFunding = () => {
+    fetchEndpoint(`/api/ads/funding-instruments?account_id=${selectedAccountId}`, 'GET', setFundingResult)
+  }
+
+  const handleFetchPayment = () => {
+    fetchEndpoint(`/api/ads/payment-methods?account_id=${selectedAccountId}`, 'GET', setPaymentResult)
+  }
+
+  const handleSetupIntent = () => {
+    fetchEndpoint('/api/ads/setup-intent', 'POST', setSetupIntentResult, { account_id: selectedAccountId })
+  }
+
+  const handleConfirmCard = () => {
+    let body: any = {}
+    try {
+      body = JSON.parse(confirmCardBody)
+    } catch {
+      setConfirmCardResult({ loading: false, data: null, error: 'Invalid JSON body', status: null, timestamp: new Date().toLocaleTimeString() })
+      return
+    }
+    fetchEndpoint('/api/ads/confirm-card', 'POST', setConfirmCardResult, { account_id: selectedAccountId, ...body })
+  }
 
   const handleLogout = () => {
     document.cookie = 'access_token=; Max-Age=0; path=/'
@@ -185,59 +130,15 @@ export default function Dashboard() {
     router.push('/')
   }
 
-  const deleteWelcomeMessage = async (id: string) => {
-    try {
-      const response = await fetch('/api/twitter/delete-welcome-message', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id }),
-      })
-      
-      if (response.ok) {
-        setWelcomeMessages(prev => prev.filter(msg => msg.id !== id))
-        // Also remove any rules that reference this message
-        setWelcomeMessageRules(prev => prev.filter(rule => rule.welcome_message_id !== id))
-      } else {
-        console.error('Failed to delete welcome message')
-      }
-    } catch (err) {
-      console.error('Error deleting welcome message:', err)
-    }
-  }
-
-  const deleteWelcomeMessageRule = async (id: string) => {
-    try {
-      const response = await fetch('/api/twitter/delete-welcome-message-rule', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id }),
-      })
-      
-      if (response.ok) {
-        setWelcomeMessageRules(prev => prev.filter(rule => rule.id !== id))
-      } else {
-        console.error('Failed to delete welcome message rule')
-      }
-    } catch (err) {
-      console.error('Error deleting welcome message rule:', err)
-    }
-  }
-
-
-
   if (loading) {
     return (
       <div className="min-h-screen py-12 px-4">
         <div className="container mx-auto">
           <div className="card">
             <div className="animate-pulse">
-              <div style={{height: '1rem', backgroundColor: '#333333', borderRadius: '4px', width: '25%', marginBottom: '1rem'}}></div>
-              <div style={{height: '1rem', backgroundColor: '#333333', borderRadius: '4px', width: '75%', marginBottom: '0.5rem'}}></div>
-              <div style={{height: '1rem', backgroundColor: '#333333', borderRadius: '4px', width: '50%'}}></div>
+              <div style={{height: '1rem', backgroundColor: '#333', borderRadius: '4px', width: '25%', marginBottom: '1rem'}}></div>
+              <div style={{height: '1rem', backgroundColor: '#333', borderRadius: '4px', width: '75%', marginBottom: '0.5rem'}}></div>
+              <div style={{height: '1rem', backgroundColor: '#333', borderRadius: '4px', width: '50%'}}></div>
             </div>
           </div>
         </div>
@@ -251,9 +152,7 @@ export default function Dashboard() {
         <div className="container mx-auto">
           <div className="error">
             <p>{error}</p>
-            <button onClick={() => router.push('/')} className="btn btn-primary mt-4">
-              Back to Login
-            </button>
+            <button onClick={() => router.push('/')} className="btn btn-primary mt-4">Back to Login</button>
           </div>
         </div>
       </div>
@@ -267,20 +166,12 @@ export default function Dashboard() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <svg
-                className="x-logo"
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
+              <svg className="x-logo" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
               </svg>
-              <h1 className="text-2xl font-bold text-gray-900">X Dashboard v2</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Ads API Debugger</h1>
             </div>
-            <button onClick={handleLogout} className="btn btn-secondary">
-              Logout
-            </button>
+            <button onClick={handleLogout} className="btn btn-secondary">Logout</button>
           </div>
         </div>
 
@@ -288,17 +179,10 @@ export default function Dashboard() {
         {user && (
           <div className="card">
             <div className="flex items-start space-x-4">
-              <img
-                src={user.profile_image_url.replace('_normal', '_bigger')}
-                alt={user.name}
-                className="profile-img"
-              />
+              <img src={user.profile_image_url.replace('_normal', '_bigger')} alt={user.name} className="profile-img" />
               <div className="flex-1">
                 <h2 className="text-xl font-bold text-gray-900">{user.name}</h2>
                 <p className="text-gray-600">@{user.screen_name}</p>
-                {user.description && (
-                  <p className="text-gray-800 mt-2">{user.description}</p>
-                )}
                 <div className="flex space-x-6 mt-3 text-sm text-gray-600">
                   <span><strong>{user.followers_count.toLocaleString()}</strong> Followers</span>
                   <span><strong>{user.friends_count.toLocaleString()}</strong> Following</span>
@@ -309,262 +193,196 @@ export default function Dashboard() {
           </div>
         )}
 
-
-
-        {/* ── Token Revocation Debug Panel ── */}
-        <div className="card debug-panel">
+        {/* Step 1: Fetch Ads Accounts */}
+        <div className="card">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                🔍 OAuth 1.0a Token Revocation Debugger
-              </h3>
-              <p className="text-gray-400 text-sm mt-1">
-                Reproduce the bug: re-authenticate and check if old tokens get revoked
-              </p>
+              <h3 className="text-lg font-semibold text-gray-900">Step 1: Ads Accounts</h3>
+              <p className="text-gray-400 text-sm mt-1">GET /11/accounts</p>
             </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={handleReauth}
-                disabled={reauthing}
-                className="btn btn-reauth"
+            <button onClick={handleFetchAccounts} disabled={accountsResult.loading} className="btn btn-primary">
+              {accountsResult.loading ? 'Loading...' : 'Fetch Accounts'}
+            </button>
+          </div>
+
+          {accounts.length > 0 && (
+            <div className="mb-4">
+              <label className="text-sm text-gray-400 block mb-2">Select Account:</label>
+              <select
+                value={selectedAccountId}
+                onChange={(e) => setSelectedAccountId(e.target.value)}
+                className="account-select"
               >
-                {reauthing ? 'Redirecting…' : '🔄 Re-Authenticate (OAuth 1.0a)'}
-              </button>
-            </div>
-          </div>
-
-          {/* Instructions */}
-          <div className="debug-instructions mb-4">
-            <p className="font-semibold text-sm mb-2">How to reproduce the bug:</p>
-            <ol className="text-sm space-y-1" style={{ paddingLeft: '1.25rem', listStyleType: 'decimal' }}>
-              <li>Click <strong>"Re-Authenticate"</strong> above to do a second OAuth 1.0a login</li>
-              <li>After returning, click <strong>"Validate All Tokens"</strong> to check each token</li>
-              <li>If Auth #1's token shows <span className="token-status-invalid">INVALID</span>, the re-auth revoked it</li>
-              <li>Repeat multiple times — the customer reports it doesn't always happen</li>
-            </ol>
-          </div>
-
-          {/* Summary */}
-          <div className="debug-summary mb-4">
-            <div className="grid grid-cols-2 gap-4" style={{ maxWidth: '400px' }}>
-              <div>
-                <span className="text-gray-400 text-sm">Total Auths</span>
-                <p className="font-bold text-xl">{totalAuths}</p>
-              </div>
-              <div>
-                <span className="text-gray-400 text-sm">Tokens Tracked</span>
-                <p className="font-bold text-xl">{tokenHistory.length}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Token list */}
-          {tokenHistory.length === 0 ? (
-            <div className="text-gray-400 text-sm" style={{ padding: '1rem', textAlign: 'center', border: '1px dashed #333', borderRadius: '6px' }}>
-              No tokens recorded yet. Log in to start tracking, then re-authenticate to test revocation.
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-400">Token History (newest first)</span>
-                <button
-                  onClick={validateAllTokens}
-                  disabled={validatingAll}
-                  className="btn btn-secondary text-sm"
-                  style={{ padding: '0.4rem 0.8rem' }}
-                >
-                  {validatingAll ? 'Validating…' : '✓ Validate All Tokens'}
-                </button>
-              </div>
-              <div className="space-y-2">
-                {tokenHistory.map((token) => (
-                  <div
-                    key={token.id}
-                    className={`token-entry ${token.isCurrent ? 'token-current' : ''} ${
-                      token.lastValidationResult === 'invalid' ? 'token-revoked' : ''
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className="token-auth-badge">Auth #{token.authSequence}</span>
-                          {token.isCurrent && <span className="token-badge-current">CURRENT</span>}
-                          {token.tokenChanged && <span className="token-badge-changed">NEW TOKEN</span>}
-                          {!token.tokenChanged && token.authSequence > 1 && (
-                            <span className="token-badge-same">SAME TOKEN</span>
-                          )}
-                          {token.lastValidationResult === 'valid' && (
-                            <span className="token-status-valid">✓ VALID</span>
-                          )}
-                          {token.lastValidationResult === 'invalid' && (
-                            <span className="token-status-invalid">✗ REVOKED</span>
-                          )}
-                          {token.lastValidationResult === 'error' && (
-                            <span className="token-status-error">⚠ ERROR</span>
-                          )}
-                        </div>
-                        <div className="text-sm text-gray-400 space-y-1">
-                          <div>
-                            <span className="text-gray-500">Token:</span>{' '}
-                            <code className="token-value">…{token.accessTokenSuffix}</code>
-                            <span className="text-gray-500" style={{ marginLeft: '0.75rem' }}>Secret:</span>{' '}
-                            <code className="token-value">…{token.accessTokenSecretSuffix}</code>
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Obtained:</span>{' '}
-                            {new Date(token.obtainedAt).toLocaleString()}
-                            {token.lastValidatedAt && (
-                              <>
-                                <span className="text-gray-500" style={{ marginLeft: '0.75rem' }}>Validated:</span>{' '}
-                                {new Date(token.lastValidatedAt).toLocaleString()}
-                              </>
-                            )}
-                          </div>
-                          {token.lastValidationError && (
-                            <div className="text-sm" style={{ color: '#ff6b6b' }}>
-                              Error: {token.lastValidationError}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => validateToken(token.id)}
-                        disabled={validatingTokenId === token.id || validatingAll}
-                        className="btn btn-secondary text-sm"
-                        style={{ padding: '0.35rem 0.7rem', whiteSpace: 'nowrap' }}
-                      >
-                        {validatingTokenId === token.id ? '…' : 'Validate'}
-                      </button>
-                    </div>
-                  </div>
+                {accounts.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.id} - {acc.name || acc.business_name || 'Unnamed'} ({acc.approval_status})
+                  </option>
                 ))}
-              </div>
-            </>
+              </select>
+            </div>
           )}
+
+          <ResultPanel result={accountsResult} />
         </div>
 
-        {/* Welcome Messages */}
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Welcome Messages</h3>
-          
-          {error && welcomeMessages.length === 0 ? (
-            <div className="error">
-              <p>{error}</p>
-            </div>
-          ) : welcomeMessages.length === 0 ? (
-            <p className="text-gray-600">No welcome messages found.</p>
-          ) : (
-            <div className="space-y-4">
-              {welcomeMessages.map((message) => (
-                <div key={message.id} className="tweet-card">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <span className="font-semibold text-gray-900">{message.name}</span>
-                        <span className="text-gray-400">·</span>
-                        <span className="text-gray-400 text-sm">
-                          {new Date(parseInt(message.created_timestamp)).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="text-gray-800 mb-3">{JSON.stringify(message.message_data, null, 2)}</p>
-                    </div>
-                    <button
-                      onClick={() => deleteWelcomeMessage(message.id)}
-                      className="btn btn-secondary text-sm ml-4"
-                    >
-                      Delete
-                    </button>
-                  </div>
+        {/* Endpoint buttons - only show when an account is selected */}
+        {selectedAccountId && (
+          <>
+            {/* Funding Instruments */}
+            <EndpointCard
+              title="Funding Instruments"
+              subtitle={`GET /11/accounts/${selectedAccountId}/funding_instruments`}
+              method="GET"
+              result={fundingResult}
+              onFetch={handleFetchFunding}
+            />
+
+            {/* Payment Methods */}
+            <EndpointCard
+              title="Payment Methods"
+              subtitle={`GET /11/accounts/${selectedAccountId}/billing/payment-methods`}
+              method="GET"
+              result={paymentResult}
+              onFetch={handleFetchPayment}
+            />
+
+            {/* Setup Intent */}
+            <EndpointCard
+              title="Setup Intent"
+              subtitle={`POST /11/accounts/${selectedAccountId}/billing/setup-intent`}
+              method="POST"
+              result={setupIntentResult}
+              onFetch={handleSetupIntent}
+            />
+
+            {/* Confirm Card */}
+            <div className="card">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Confirm Card</h3>
+                  <p className="text-gray-400 text-sm mt-1">POST /11/accounts/{selectedAccountId}/billing/confirm-card</p>
                 </div>
-              ))}
+                <div className="flex items-center space-x-2">
+                  <span className="method-badge method-post">POST</span>
+                  <button onClick={handleConfirmCard} disabled={confirmCardResult.loading} className="btn btn-primary">
+                    {confirmCardResult.loading ? 'Loading...' : 'Send'}
+                  </button>
+                </div>
+              </div>
+              <div className="mb-4">
+                <label className="text-sm text-gray-400 block mb-2">Request Body (JSON):</label>
+                <textarea
+                  value={confirmCardBody}
+                  onChange={(e) => setConfirmCardBody(e.target.value)}
+                  className="json-input"
+                  rows={4}
+                  spellCheck={false}
+                  placeholder='{"setup_intent_id": "...", "payment_method_id": "..."}'
+                />
+              </div>
+              <ResultPanel result={confirmCardResult} />
             </div>
-          )}
-        </div>
-
-        {/* Welcome Message Rules */}
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Welcome Message Rules</h3>
-          
-          {error && welcomeMessageRules.length === 0 ? (
-            <div className="error">
-              <p>{error}</p>
-            </div>
-          ) : welcomeMessageRules.length === 0 ? (
-            <p className="text-gray-600">No welcome message rules found.</p>
-          ) : (
-            <div className="space-y-4">
-              {welcomeMessageRules.map((rule) => {
-                const associatedMessage = welcomeMessages.find(msg => msg.id === rule.welcome_message_id)
-                return (
-                  <div key={rule.id} className="tweet-card">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className="font-semibold text-gray-900">{rule.name}</span>
-                          <span className="text-gray-400">·</span>
-                          <span className="text-gray-400 text-sm">
-                            {new Date(parseInt(rule.created_timestamp)).toLocaleDateString()}
-                          </span>
-                        </div>
-                        {associatedMessage && (
-                          <p className="text-gray-600 text-sm mb-2">
-                            Associated with: "{associatedMessage.message_data.text}"
-                          </p>
-                        )}
-                        <p className="text-gray-400 text-sm">
-                          Message ID: {rule.welcome_message_id}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => deleteWelcomeMessageRule(rule.id)}
-                        className="btn btn-secondary text-sm ml-4"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
+          </>
+        )}
 
         {/* API Info */}
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">X API v1.1 Welcome Messages Integration</h3>
-          <p className="text-gray-600 mb-4">
-            This dashboard uses X API v1.1 endpoints for welcome messages management:
-          </p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">X Ads API v11 Endpoints</h3>
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
-              <span className="status-indicator status-green"></span>
-              <span className="text-sm">GET /1.1/direct_messages/welcome_messages/list.json - Welcome messages</span>
+              <span className="method-badge method-get">GET</span>
+              <span className="text-sm">/11/accounts - List ads accounts</span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="status-indicator status-green"></span>
-              <span className="text-sm">GET /1.1/direct_messages/welcome_messages/rules/list.json - Welcome message rules</span>
+              <span className="method-badge method-get">GET</span>
+              <span className="text-sm">/11/accounts/:id/funding_instruments</span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="status-indicator status-green"></span>
-              <span className="text-sm">DELETE /1.1/direct_messages/welcome_messages/destroy.json - Delete messages</span>
+              <span className="method-badge method-get">GET</span>
+              <span className="text-sm">/11/accounts/:id/billing/payment-methods</span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="status-indicator status-green"></span>
-              <span className="text-sm">DELETE /1.1/direct_messages/welcome_messages/rules/destroy.json - Delete rules</span>
+              <span className="method-badge method-post">POST</span>
+              <span className="text-sm">/11/accounts/:id/billing/setup-intent</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="method-badge method-post">POST</span>
+              <span className="text-sm">/11/accounts/:id/billing/confirm-card</span>
             </div>
           </div>
-          
-          <button
-            onClick={() => {
-              fetchWelcomeMessages()
-              fetchWelcomeMessageRules()
-            }}
-            className="btn btn-primary mt-4"
-          >
-            Refresh Data
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function EndpointCard({ title, subtitle, method, result, onFetch }: {
+  title: string
+  subtitle: string
+  method: 'GET' | 'POST'
+  result: EndpointResult
+  onFetch: () => void
+}) {
+  return (
+    <div className="card">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          <p className="text-gray-400 text-sm mt-1">{subtitle}</p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <span className={`method-badge ${method === 'GET' ? 'method-get' : 'method-post'}`}>{method}</span>
+          <button onClick={onFetch} disabled={result.loading} className="btn btn-primary">
+            {result.loading ? 'Loading...' : 'Send'}
           </button>
         </div>
       </div>
+      <ResultPanel result={result} />
+    </div>
+  )
+}
+
+function ResultPanel({ result }: { result: EndpointResult }) {
+  if (!result.data && !result.error && !result.loading) return null
+
+  if (result.loading) {
+    return (
+      <div className="result-panel">
+        <div className="animate-pulse">
+          <div style={{height: '0.75rem', backgroundColor: '#333', borderRadius: '4px', width: '60%'}}></div>
+        </div>
+      </div>
+    )
+  }
+
+  const isError = result.status !== null && result.status >= 400
+  const statusColor = isError ? '#f87171' : '#4ade80'
+
+  return (
+    <div className={`result-panel ${isError ? 'result-error' : ''}`}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center space-x-3">
+          {result.status && (
+            <span className="text-sm font-bold" style={{ color: statusColor }}>
+              {result.status}
+            </span>
+          )}
+          {result.timestamp && (
+            <span className="text-xs text-gray-500">{result.timestamp}</span>
+          )}
+        </div>
+        {result.data && (
+          <button
+            onClick={() => navigator.clipboard.writeText(JSON.stringify(result.data, null, 2))}
+            className="btn btn-secondary text-xs"
+            style={{ padding: '0.25rem 0.5rem' }}
+          >
+            Copy
+          </button>
+        )}
+      </div>
+      {result.error && <pre className="json-output" style={{ color: '#f87171' }}>{result.error}</pre>}
+      {result.data && <pre className="json-output">{JSON.stringify(result.data, null, 2)}</pre>}
     </div>
   )
 }

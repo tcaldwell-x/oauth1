@@ -28,40 +28,12 @@ export interface AccessTokenResponse {
   screen_name: string;
 }
 
-export interface PostAnalytics {
-  id: string;
-  timestamped_metrics: Array<{
-    metrics: {
-      app_install_attempts?: number;
-      app_opens?: number;
-      detail_expands?: number;
-      email_tweet?: number;
-      engagements?: number;
-      follows?: number;
-      hashtag_clicks?: number;
-      impressions?: number;
-      likes?: number;
-      link_clicks?: number;
-      media_engagements?: number;
-      media_views?: number;
-      permalink_clicks?: number;
-      profile_visits?: number;
-      quote_tweets?: number;
-      replies?: number;
-      retweets?: number;
-      url_clicks?: number;
-      user_profile_clicks?: number;
-    };
-    timestamp: string;
-  }>;
-}
-
 export class TwitterOAuth {
   private static readonly REQUEST_TOKEN_URL = 'https://api.twitter.com/oauth/request_token';
   private static readonly AUTHORIZE_URL = 'https://api.twitter.com/oauth/authorize';
   private static readonly ACCESS_TOKEN_URL = 'https://api.twitter.com/oauth/access_token';
   private static readonly API_V1_BASE_URL = 'https://api.twitter.com/1.1';
-  private static readonly API_V2_BASE_URL = 'https://api.x.com/2';
+  private static readonly ADS_API_BASE_URL = 'https://ads-api.x.com/11';
 
   static async getRequestToken(callbackUrl: string): Promise<RequestTokenResponse> {
     const requestData = {
@@ -141,27 +113,30 @@ export class TwitterOAuth {
     };
   }
 
+  static async getUserProfile(accessToken: string, accessTokenSecret: string) {
+    return this.makeApiRequest(
+      `${this.API_V1_BASE_URL}/account/verify_credentials.json`,
+      'GET',
+      accessToken,
+      accessTokenSecret
+    );
+  }
+
+  /**
+   * Generic form-encoded API request (GET with query params, POST with form body).
+   */
   static async makeApiRequest(
     url: string,
-    method: 'GET' | 'POST',
+    method: 'GET' | 'POST' | 'DELETE',
     accessToken: string,
     accessTokenSecret: string,
     params: Record<string, string> = {}
   ): Promise<any> {
-    const token = {
-      key: accessToken,
-      secret: accessTokenSecret,
-    };
-
-    const requestData = {
-      url,
-      method,
-      data: params,
-    };
-
+    const token = { key: accessToken, secret: accessTokenSecret };
+    const requestData = { url, method, data: params };
     const oauthHeaders = oauth.toHeader(oauth.authorize(requestData, token));
     const headers: Record<string, string> = { ...oauthHeaders };
-    
+
     let finalUrl = url;
     let body: string | undefined;
 
@@ -172,203 +147,102 @@ export class TwitterOAuth {
       headers['Content-Type'] = 'application/x-www-form-urlencoded';
     }
 
-    const response = await fetch(finalUrl, {
-      method,
-      headers,
-      body,
-    });
+    const response = await fetch(finalUrl, { method, headers, body });
 
     if (!response.ok) {
-      throw new Error(`API request failed: ${response.statusText}`);
+      const errorBody = await response.text();
+      const err: any = new Error(`API request failed: ${response.status} ${response.statusText}`);
+      err.status = response.status;
+      err.body = errorBody;
+      throw err;
     }
 
     return response.json();
   }
 
-  // V1.1 API methods (for backward compatibility)
-  static async getUserProfile(accessToken: string, accessTokenSecret: string) {
-    return this.makeApiRequest(
-      `${this.API_V1_BASE_URL}/account/verify_credentials.json`,
-      'GET',
-      accessToken,
-      accessTokenSecret
-    );
-  }
-
-  static async getTweets(accessToken: string, accessTokenSecret: string, count = 10) {
-    return this.makeApiRequest(
-      `${this.API_V1_BASE_URL}/statuses/home_timeline.json`,
-      'GET',
-      accessToken,
-      accessTokenSecret,
-      { count: count.toString() }
-    );
-  }
-
-  // V2 API methods
-  static async getUserTweets(accessToken: string, accessTokenSecret: string, userId: string, maxResults = 10) {
-    return this.makeApiRequest(
-      `${this.API_V2_BASE_URL}/users/${userId}/tweets`,
-      'GET',
-      accessToken,
-      accessTokenSecret,
-      { 
-        'tweet.fields': 'created_at,public_metrics,context_annotations',
-        'max_results': maxResults.toString()
-      }
-    );
-  }
-
-  static async getPostAnalytics(
-    accessToken: string, 
-    accessTokenSecret: string, 
-    postIds: string[], 
-    startTime: string, 
-    endTime: string,
-    granularity: 'hourly' | 'daily' | 'weekly' | 'total' = 'total'
-  ): Promise<{ data: PostAnalytics[], errors?: any[] }> {
-    const params = {
-      ids: postIds.join(','),
-      start_time: startTime,
-      end_time: endTime,
-      granularity: granularity,
-      'analytics.fields': 'impressions,likes,retweets,replies,engagements,profile_visits,url_clicks,media_views'
-    };
-
-    return this.makeApiRequest(
-      `${this.API_V2_BASE_URL}/tweets/analytics`,
-      'GET',
-      accessToken,
-      accessTokenSecret,
-      params
-    );
-  }
-
-  // Welcome Messages API methods
-  static async getWelcomeMessages(accessToken: string, accessTokenSecret: string) {
-    return this.makeApiRequest(
-      `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/list.json`,
-      'GET',
-      accessToken,
-      accessTokenSecret
-    );
-  }
-
-  static async getWelcomeMessageRules(accessToken: string, accessTokenSecret: string) {
-    return this.makeApiRequest(
-      `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/rules/list.json`,
-      'GET',
-      accessToken,
-      accessTokenSecret
-    );
-  }
-
-  static async deleteWelcomeMessage(accessToken: string, accessTokenSecret: string, id: string) {
-    const token = {
-      key: accessToken,
-      secret: accessTokenSecret,
-    };
-
-    // Delete endpoint expects ID as query parameter
-    const params = { id };
-    const url = `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/destroy.json?id=${id}`;
-
-    const requestData = {
-      url,
-      method: 'DELETE',
-      data: params,
-    };
-
+  /**
+   * JSON-body API request used by Ads billing endpoints.
+   * OAuth signature is computed over the URL only (no body params in signature).
+   */
+  static async makeJsonApiRequest(
+    url: string,
+    method: 'POST',
+    accessToken: string,
+    accessTokenSecret: string,
+    jsonBody: Record<string, any> = {}
+  ): Promise<any> {
+    const token = { key: accessToken, secret: accessTokenSecret };
+    const requestData = { url, method, data: {} };
     const oauthHeaders = oauth.toHeader(oauth.authorize(requestData, token));
-    
-    const headers: Record<string, string> = { 
+    const headers: Record<string, string> = {
       ...oauthHeaders,
-      'Content-Type': 'application/x-www-form-urlencoded'
+      'Content-Type': 'application/json',
     };
 
     const response = await fetch(url, {
-      method: 'DELETE',
+      method,
       headers,
+      body: JSON.stringify(jsonBody),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Error Response:', errorText);
-      throw new Error(`API request failed: ${response.statusText}`);
+      const errorBody = await response.text();
+      const err: any = new Error(`API request failed: ${response.status} ${response.statusText}`);
+      err.status = response.status;
+      err.body = errorBody;
+      throw err;
     }
 
-    // DELETE requests often return 204 No Content or empty response
-    if (response.status === 204 || response.headers.get('content-length') === '0') {
-      return { success: true, message: 'Welcome message deleted successfully' };
-    }
-
-    // Try to parse JSON, but handle empty responses gracefully
-    const responseText = await response.text();
-    if (!responseText.trim()) {
-      return { success: true, message: 'Welcome message deleted successfully' };
-    }
-
-    try {
-      return JSON.parse(responseText);
-    } catch (error) {
-      // If JSON parsing fails, return success for DELETE operations
-      return { success: true, message: 'Welcome message deleted successfully' };
-    }
+    return response.json();
   }
 
-  static async deleteWelcomeMessageRule(accessToken: string, accessTokenSecret: string, id: string) {
-    const token = {
-      key: accessToken,
-      secret: accessTokenSecret,
-    };
+  // ── Ads API ──
 
-    // Delete endpoint expects ID as query parameter
-    const params = { id };
-    const url = `${this.API_V1_BASE_URL}/direct_messages/welcome_messages/rules/destroy.json?id=${id}`;
-
-    const requestData = {
-      url,
-      method: 'DELETE',
-      data: params,
-    };
-
-    const oauthHeaders = oauth.toHeader(oauth.authorize(requestData, token));
-    
-    const headers: Record<string, string> = { 
-      ...oauthHeaders,
-      'Content-Type': 'application/x-www-form-urlencoded'
-    };
-
-    const response = await fetch(url, {
-      method: 'DELETE',
-      headers,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Error Response:', errorText);
-      throw new Error(`API request failed: ${response.statusText}`);
-    }
-
-    // DELETE requests often return 204 No Content or empty response
-    if (response.status === 204 || response.headers.get('content-length') === '0') {
-      return { success: true, message: 'Welcome message rule deleted successfully' };
-    }
-
-    // Try to parse JSON, but handle empty responses gracefully
-    const responseText = await response.text();
-    if (!responseText.trim()) {
-      return { success: true, message: 'Welcome message rule deleted successfully' };
-    }
-
-    try {
-      return JSON.parse(responseText);
-    } catch (error) {
-      // If JSON parsing fails, return success for DELETE operations
-      return { success: true, message: 'Welcome message rule deleted successfully' };
-    }
+  static async getAdsAccounts(accessToken: string, accessTokenSecret: string) {
+    return this.makeApiRequest(
+      `${this.ADS_API_BASE_URL}/accounts`,
+      'GET',
+      accessToken,
+      accessTokenSecret
+    );
   }
 
+  static async getFundingInstruments(accessToken: string, accessTokenSecret: string, accountId: string) {
+    return this.makeApiRequest(
+      `${this.ADS_API_BASE_URL}/accounts/${accountId}/funding_instruments`,
+      'GET',
+      accessToken,
+      accessTokenSecret
+    );
+  }
+
+  static async getPaymentMethods(accessToken: string, accessTokenSecret: string, accountId: string) {
+    return this.makeApiRequest(
+      `${this.ADS_API_BASE_URL}/accounts/${accountId}/billing/payment-methods`,
+      'GET',
+      accessToken,
+      accessTokenSecret
+    );
+  }
+
+  static async createSetupIntent(accessToken: string, accessTokenSecret: string, accountId: string) {
+    return this.makeJsonApiRequest(
+      `${this.ADS_API_BASE_URL}/accounts/${accountId}/billing/setup-intent`,
+      'POST',
+      accessToken,
+      accessTokenSecret
+    );
+  }
+
+  static async confirmCard(accessToken: string, accessTokenSecret: string, accountId: string, body: Record<string, any> = {}) {
+    return this.makeJsonApiRequest(
+      `${this.ADS_API_BASE_URL}/accounts/${accountId}/billing/confirm-card`,
+      'POST',
+      accessToken,
+      accessTokenSecret,
+      body
+    );
+  }
 }
 
 export default oauth;

@@ -20,7 +20,7 @@ export default function LoginPage() {
       <div className="max-w-md mx-auto">
         <div className="card text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-6">
-            Welcome Message Manager
+            Ads API Debugger
           </h1>
           
           {error && (

@@ -86,482 +86,157 @@ body {
   border-radius: 50%;
 }
 
-.profile-img-small {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-}
+/* Flex utilities */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-1 { flex: 1; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.justify-between { justify-content: space-between; }
+.justify-center { justify-content: center; }
 
-.flex {
-  display: flex;
-}
+.space-x-2 > * + * { margin-left: 0.5rem; }
+.space-x-3 > * + * { margin-left: 0.75rem; }
+.space-x-4 > * + * { margin-left: 1rem; }
+.space-x-6 > * + * { margin-left: 1.5rem; }
+.space-y-2 > * + * { margin-top: 0.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-6 > * + * { margin-top: 1.5rem; }
 
-.flex-col {
-  flex-direction: column;
-}
+/* Text utilities */
+.text-center { text-align: center; }
+.font-bold { font-weight: bold; }
+.font-semibold { font-weight: 600; }
+.text-xs { font-size: 0.75rem; }
+.text-sm { font-size: 0.875rem; }
+.text-lg { font-size: 1.125rem; }
+.text-xl { font-size: 1.25rem; }
+.text-2xl { font-size: 1.5rem; }
+.text-3xl { font-size: 1.875rem; }
 
-.items-center {
-  align-items: center;
-}
+.text-gray-400 { color: #9ca3af; }
+.text-gray-500 { color: #6b7280; }
+.text-gray-600 { color: #d1d5db; }
+.text-gray-800 { color: #f3f4f6; }
+.text-gray-900 { color: #ffffff; }
 
-.items-start {
-  align-items: flex-start;
-}
-
-.justify-between {
-  justify-content: space-between;
-}
-
-.justify-center {
-  justify-content: center;
-}
-
-.space-x-2 > * + * {
-  margin-left: 0.5rem;
-}
-
-.space-x-3 > * + * {
-  margin-left: 0.75rem;
-}
-
-.space-x-4 > * + * {
-  margin-left: 1rem;
-}
-
-.space-x-6 > * + * {
-  margin-left: 1.5rem;
-}
-
-.space-y-1 > * + * {
-  margin-top: 0.25rem;
-}
-
-.space-y-2 > * + * {
-  margin-top: 0.5rem;
-}
-
-.space-y-4 > * + * {
-  margin-top: 1rem;
-}
-
-.space-y-6 > * + * {
-  margin-top: 1.5rem;
-}
-
-.text-center {
-  text-align: center;
-}
-
-.text-left {
-  text-align: left;
-}
-
-.font-bold {
-  font-weight: bold;
-}
-
-.font-semibold {
-  font-weight: 600;
-}
-
-.text-sm {
-  font-size: 0.875rem;
-}
-
-.text-lg {
-  font-size: 1.125rem;
-}
-
-.text-xl {
-  font-size: 1.25rem;
-}
-
-.text-2xl {
-  font-size: 1.5rem;
-}
-
-.text-3xl {
-  font-size: 1.875rem;
-}
-
-.text-gray-400 {
-  color: #9ca3af;
-}
-
-.text-gray-600 {
-  color: #d1d5db;
-}
-
-.text-gray-800 {
-  color: #f3f4f6;
-}
-
-.text-gray-900 {
-  color: #ffffff;
-}
-
-.text-blue-800 {
-  color: #d1d5db;
-}
-
-.text-blue-900 {
-  color: #ffffff;
-}
-
-.bg-blue-50 {
-  background-color: #1a1a1a;
-  border: 1px solid #333333;
-}
-
-.border {
-  border: 1px solid #333333;
-}
-
-.border-gray-200 {
-  border-color: #333333;
-}
-
-.rounded-lg {
-  border-radius: 8px;
-}
-
-.p-4 {
-  padding: 1rem;
-}
-
-.p-6 {
-  padding: 1.5rem;
-}
-
-.mb-2 {
-  margin-bottom: 0.5rem;
-}
-
-.mb-4 {
-  margin-bottom: 1rem;
-}
-
-.mb-6 {
-  margin-bottom: 1.5rem;
-}
-
-.mb-8 {
-  margin-bottom: 2rem;
-}
-
-.mt-1 {
-  margin-top: 0.25rem;
-}
-
-.mt-2 {
-  margin-top: 0.5rem;
-}
-
-.mt-3 {
-  margin-top: 0.75rem;
-}
-
-.mt-4 {
-  margin-top: 1rem;
-}
-
-.mt-8 {
-  margin-top: 2rem;
-}
-
-.mr-2 {
-  margin-right: 0.5rem;
-}
-
-.w-full {
-  width: 100%;
-}
-
-.max-w-md {
-  max-width: 28rem;
-}
-
-.max-w-4xl {
-  max-width: 56rem;
-}
-
-.mx-auto {
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.min-h-screen {
-  min-height: 100vh;
-}
-
-.py-8 {
-  padding-top: 2rem;
-  padding-bottom: 2rem;
-}
-
-.py-12 {
-  padding-top: 3rem;
-  padding-bottom: 3rem;
-}
-
-.px-4 {
-  padding-left: 1rem;
-  padding-right: 1rem;
-}
-
-.flex-1 {
-  flex: 1;
-}
+/* Spacing utilities */
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mb-6 { margin-bottom: 1.5rem; }
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-3 { margin-top: 0.75rem; }
+.mt-4 { margin-top: 1rem; }
+.mr-2 { margin-right: 0.5rem; }
+.w-full { width: 100%; }
+.max-w-md { max-width: 28rem; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+.min-h-screen { min-height: 100vh; }
+.py-12 { padding-top: 3rem; padding-bottom: 3rem; }
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
 
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
-
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: .5;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
 }
 
-.status-indicator {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 0.5rem;
-}
-
-.status-green {
-  background-color: #10b981;
-}
-
-.setup-box {
-  background-color: #1a1a1a;
-  border: 1px solid #333333;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-top: 2rem;
-}
-
-.tweet-card {
-  border: 1px solid #333333;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  background-color: #111111;
-}
-
-/* X Logo SVG styling */
-.x-logo {
-  fill: currentColor;
-}
+.x-logo { fill: currentColor; }
 
 /* Responsive */
 @media (max-width: 640px) {
-  .container {
-    padding: 1rem 0.5rem;
-  }
-  
-  .card {
-    padding: 1.5rem;
-  }
+  .container { padding: 1rem 0.5rem; }
+  .card { padding: 1.5rem; }
 }
 
-/* Grid utilities */
-.grid {
-  display: grid;
+/* ── Ads API Debugger ── */
+
+/* Method badges */
+.method-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+.method-get {
+  background: #052e16;
+  color: #4ade80;
+}
+.method-post {
+  background: #1e3a5f;
+  color: #60a5fa;
 }
 
-.grid-cols-2 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+/* Account selector */
+.account-select {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.9rem;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  outline: none;
+}
+.account-select:focus {
+  border-color: #60a5fa;
 }
 
-.gap-4 {
-  gap: 1rem;
+/* JSON result panel */
+.result-panel {
+  background: #0a0a0a;
+  border: 1px solid #1f2937;
+  border-radius: 6px;
+  padding: 1rem;
+}
+.result-panel.result-error {
+  border-color: #5c2a2a;
 }
 
-.text-center {
-  text-align: center;
+.json-output {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #e2e8f0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+  max-height: 500px;
+  overflow-y: auto;
 }
 
-@media (min-width: 768px) {
-  .md\\:grid-cols-4 {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
+/* JSON body input for POST endpoints */
+.json-input {
+  width: 100%;
+  padding: 0.75rem;
+  background: #0a0a0a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+}
+.json-input:focus {
+  border-color: #60a5fa;
+}
+.json-input::placeholder {
+  color: #555;
 }
 
-/* Code blocks for tokens */
 code {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 0.875rem;
   line-height: 1.4;
-}
-
-.bg-gray-800 {
-  background-color: #1f2937;
-}
-
-.text-gray-300 {
-  color: #d1d5db;
-}
-
-.text-gray-500 {
-  color: #6b7280;
-}
-
-.text-xs {
-  font-size: 0.75rem;
-}
-
-.px-3 {
-  padding-left: 0.75rem;
-  padding-right: 0.75rem;
-}
-
-.py-2 {
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
-}
-
-.break-all {
-  word-break: break-all;
-}
-
-/* ── Token Revocation Debug Panel ── */
-
-.debug-panel {
-  border: 1px solid #2563eb;
-  background: #0a0f1a;
-}
-
-.debug-instructions {
-  background: #111827;
-  border: 1px solid #1f2937;
-  border-radius: 6px;
-  padding: 0.75rem 1rem;
-}
-
-.debug-instructions ol li {
-  line-height: 1.6;
-}
-
-.debug-summary {
-  padding: 0.5rem 0;
-}
-
-/* Re-auth button — stands out */
-.btn-reauth {
-  background: #2563eb;
-  color: #fff;
-  border: 1px solid #3b82f6;
-  font-weight: 600;
-}
-.btn-reauth:hover:not(:disabled) {
-  background: #1d4ed8;
-}
-.btn-reauth:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Individual token row */
-.token-entry {
-  border: 1px solid #1f2937;
-  border-radius: 6px;
-  padding: 0.75rem 1rem;
-  background: #111827;
-  transition: border-color 0.15s;
-}
-.token-entry.token-current {
-  border-color: #2563eb;
-}
-.token-entry.token-revoked {
-  border-color: #dc2626;
-  background: #1a0a0a;
-}
-
-/* Badge pills */
-.token-auth-badge {
-  display: inline-block;
-  font-size: 0.75rem;
-  font-weight: 700;
-  background: #1e293b;
-  color: #94a3b8;
-  padding: 0.15rem 0.5rem;
-  border-radius: 4px;
-}
-.token-badge-current {
-  display: inline-block;
-  font-size: 0.65rem;
-  font-weight: 700;
-  background: #1e3a5f;
-  color: #60a5fa;
-  padding: 0.15rem 0.45rem;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.token-badge-changed {
-  display: inline-block;
-  font-size: 0.65rem;
-  font-weight: 700;
-  background: #3b1f0b;
-  color: #fb923c;
-  padding: 0.15rem 0.45rem;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.token-badge-same {
-  display: inline-block;
-  font-size: 0.65rem;
-  font-weight: 700;
-  background: #1e293b;
-  color: #64748b;
-  padding: 0.15rem 0.45rem;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-/* Validation status pills */
-.token-status-valid {
-  display: inline-block;
-  font-size: 0.65rem;
-  font-weight: 700;
-  background: #052e16;
-  color: #4ade80;
-  padding: 0.15rem 0.45rem;
-  border-radius: 4px;
-}
-.token-status-invalid {
-  display: inline-block;
-  font-size: 0.65rem;
-  font-weight: 700;
-  background: #450a0a;
-  color: #f87171;
-  padding: 0.15rem 0.45rem;
-  border-radius: 4px;
-}
-.token-status-error {
-  display: inline-block;
-  font-size: 0.65rem;
-  font-weight: 700;
-  background: #422006;
-  color: #fbbf24;
-  padding: 0.15rem 0.45rem;
-  border-radius: 4px;
-}
-
-/* Monospace token values */
-.token-value {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 0.8rem;
-  background: #1e293b;
-  padding: 0.1rem 0.35rem;
-  border-radius: 3px;
-  color: #e2e8f0;
 }
