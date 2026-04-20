@@ -23,10 +23,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const data = await TwitterOAuth.confirmCard(access_token, access_token_secret, accountId, body);
     res.json(data);
   } catch (error: any) {
-    console.error('Error confirming card:', error);
-    if (error.body) {
-      try { return res.status(error.status || 500).json(JSON.parse(error.body)); } catch {}
+    const status = error.status || 500;
+    try {
+      return res.status(status).json(JSON.parse(error.body));
+    } catch {
+      return res.status(status).json({ error: error.message, body: error.body || null });
     }
-    res.status(error.status || 500).json({ error: error.message });
   }
 }
