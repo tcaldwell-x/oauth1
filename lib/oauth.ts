@@ -212,7 +212,8 @@ export class TwitterOAuth {
       `${this.ADS_API_BASE_URL}/accounts/${accountId}/funding_instruments`,
       'GET',
       accessToken,
-      accessTokenSecret
+      accessTokenSecret,
+      { with_deleted: 'false' }
     );
   }
 
